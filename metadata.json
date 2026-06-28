@@ -1,0 +1,6 @@
+{
+  "name": "Control de Parqueo",
+  "description": "Aplicación para gestionar y controlar el costo de estacionamiento de tu vehículo en tiempo real con recargas de saldo y simulación de tarifa de $0.10 por hora.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
