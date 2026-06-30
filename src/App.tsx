@@ -12,6 +12,7 @@ import SimulatorPanel from "./components/SimulatorPanel";
 import ParkingHistory from "./components/ParkingHistory";
 import { Car, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { saveParkingStateToDb, loadParkingStateFromDb } from "./lib/db";
 
 const DEFAULT_STATE: ParkingState = {
   balance: 5.0, // Preload with $5.00 for immediate testing
@@ -26,88 +27,137 @@ const DEFAULT_STATE: ParkingState = {
 export default function App() {
   const [state, setState] = useState<ParkingState>(DEFAULT_STATE);
   const [showEmptyAlert, setShowEmptyAlert] = useState<boolean>(false);
+  const [userId, setUserId] = useState<string>("");
+  const [dbSynced, setDbSynced] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const lastUpdatedRef = useRef<number | null>(null);
 
-  // Initialize and check offline elapsed time on mount
+  // Initialize and check offline elapsed time on mount, loading from Firestore
   useEffect(() => {
-    const saved = localStorage.getItem("parking_manager_state");
-    if (saved) {
+    let uId = localStorage.getItem("parking_userId");
+    if (!uId) {
+      uId = `user-${Math.random().toString(36).substring(2, 11)}-${Date.now().toString(36)}`;
+      localStorage.setItem("parking_userId", uId);
+    }
+    setUserId(uId);
+
+    const initializeState = async () => {
+      let loadedState: ParkingState | null = null;
       try {
-        const parsed: ParkingState & { lastSavedTime?: number } = JSON.parse(saved);
-        
-        // Handle calculating elapsed time while tab was closed/inactive
-        if (parsed.isActive && parsed.currentSessionId && parsed.lastSavedTime) {
-          const elapsedRealMs = Date.now() - parsed.lastSavedTime;
-          if (elapsedRealMs > 0) {
-            const simDeltaMs = elapsedRealMs * parsed.speedMultiplier;
-            const RATE_PER_MS = 0.10 / (3600 * 1000); // $0.10 per hour
-            const offlineCost = simDeltaMs * RATE_PER_MS;
+        const dbState = await loadParkingStateFromDb(uId);
+        if (dbState) {
+          loadedState = dbState;
+          setDbSynced(true);
+        }
+      } catch (err) {
+        console.error("Error loading state from Firestore:", err);
+      }
 
-            if (offlineCost >= parsed.balance) {
-              const finalAffordableMs = parsed.balance / RATE_PER_MS;
-              const updatedHistory = parsed.history.map((s) => {
-                if (s.id === parsed.currentSessionId) {
-                  return {
-                    ...s,
-                    endTime: s.startTime + s.elapsedTimeMs + finalAffordableMs,
-                    elapsedTimeMs: s.elapsedTimeMs + finalAffordableMs,
-                    cost: s.cost + parsed.balance,
-                    isActive: false,
-                  };
-                }
-                return s;
-              });
+      // Fallback to localStorage if Firestore load failed or was empty
+      if (!loadedState) {
+        const savedLocal = localStorage.getItem("parking_manager_state");
+        if (savedLocal) {
+          try {
+            loadedState = JSON.parse(savedLocal);
+          } catch (e) {
+            console.error("Failed to parse local storage fallback", e);
+          }
+        }
+      }
 
-              setState({
-                ...parsed,
-                balance: 0,
-                isActive: false,
-                currentSessionId: null,
-                history: updatedHistory,
-                totalSpent: parsed.totalSpent + parsed.balance,
-              });
-              setShowEmptyAlert(true);
-            } else {
-              const updatedHistory = parsed.history.map((s) => {
-                if (s.id === parsed.currentSessionId) {
-                  return {
-                    ...s,
-                    elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
-                    cost: s.cost + offlineCost,
-                  };
-                }
-                return s;
-              });
+      const parsed = loadedState || DEFAULT_STATE;
 
-              setState({
-                ...parsed,
-                balance: parsed.balance - offlineCost,
-                history: updatedHistory,
-                totalSpent: parsed.totalSpent + offlineCost,
-              });
-            }
+      // Handle calculating elapsed time while app was inactive
+      if (parsed.isActive && parsed.currentSessionId && parsed.lastSavedTime) {
+        const elapsedRealMs = Date.now() - parsed.lastSavedTime;
+        if (elapsedRealMs > 0) {
+          const simDeltaMs = elapsedRealMs * parsed.speedMultiplier;
+          const RATE_PER_MS = 0.10 / (3600 * 1000); // $0.10 per hour
+          const offlineCost = simDeltaMs * RATE_PER_MS;
+
+          if (offlineCost >= parsed.balance) {
+            const finalAffordableMs = parsed.balance / RATE_PER_MS;
+            const updatedHistory = parsed.history.map((s) => {
+              if (s.id === parsed.currentSessionId) {
+                return {
+                  ...s,
+                  endTime: s.startTime + s.elapsedTimeMs + finalAffordableMs,
+                  elapsedTimeMs: s.elapsedTimeMs + finalAffordableMs,
+                  cost: s.cost + parsed.balance,
+                  isActive: false,
+                };
+              }
+              return s;
+            });
+
+            const finalState = {
+              ...parsed,
+              balance: 0,
+              isActive: false,
+              currentSessionId: null,
+              history: updatedHistory,
+              totalSpent: parsed.totalSpent + parsed.balance,
+            };
+            setState(finalState);
+            setShowEmptyAlert(true);
+            saveParkingStateToDb(uId, finalState);
           } else {
-            setState(parsed);
+            const updatedHistory = parsed.history.map((s) => {
+              if (s.id === parsed.currentSessionId) {
+                return {
+                  ...s,
+                  elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
+                  cost: s.cost + offlineCost,
+                };
+              }
+              return s;
+            });
+
+            const finalState = {
+              ...parsed,
+              balance: parsed.balance - offlineCost,
+              history: updatedHistory,
+              totalSpent: parsed.totalSpent + offlineCost,
+            };
+            setState(finalState);
+            saveParkingStateToDb(uId, finalState);
           }
         } else {
           setState(parsed);
         }
-      } catch (e) {
-        console.error("Failed to restore parking manager state", e);
+      } else {
+        setState(parsed);
       }
-    }
+    };
+
+    initializeState();
   }, []);
 
-  // Save to localStorage when state changes
-  useEffect(() => {
-    if (state !== DEFAULT_STATE) {
-      const stateToSave = {
-        ...state,
-        lastSavedTime: Date.now(),
-      };
-      localStorage.setItem("parking_manager_state", JSON.stringify(stateToSave));
+  // Centralized local state + Firestore save helper
+  const updateAndSaveState = (newState: ParkingState) => {
+    setState(newState);
+    
+    // Save to local storage for quick offline recovery
+    const stateToSave = {
+      ...newState,
+      lastSavedTime: Date.now(),
+    };
+    localStorage.setItem("parking_manager_state", JSON.stringify(stateToSave));
+    
+    // Save to Firestore DB
+    if (userId) {
+      setIsSaving(true);
+      saveParkingStateToDb(userId, newState)
+        .then(() => {
+          setDbSynced(true);
+          setIsSaving(false);
+        })
+        .catch((err) => {
+          console.error("Firestore save failed:", err);
+          setIsSaving(false);
+        });
     }
-  }, [state]);
+  };
 
   // Active Session ticking logic (every 100ms)
   useEffect(() => {
@@ -155,7 +205,7 @@ export default function App() {
 
           setShowEmptyAlert(true);
 
-          return {
+          const newState = {
             ...prev,
             balance: 0,
             isActive: false,
@@ -163,6 +213,11 @@ export default function App() {
             history: updatedHistory,
             totalSpent: prev.totalSpent + finalCost,
           };
+
+          if (userId) {
+            saveParkingStateToDb(userId, newState);
+          }
+          return newState;
         }
 
         const updatedHistory = prev.history.map((s) => {
@@ -176,17 +231,26 @@ export default function App() {
           return s;
         });
 
-        return {
+        const newState = {
           ...prev,
           balance: Math.max(0, prev.balance - tickCost),
           history: updatedHistory,
           totalSpent: prev.totalSpent + tickCost,
         };
+
+        // Cache state locally on tick for fast recovery
+        const stateToSave = {
+          ...newState,
+          lastSavedTime: Date.now(),
+        };
+        localStorage.setItem("parking_manager_state", JSON.stringify(stateToSave));
+
+        return newState;
       });
     }, 100);
 
     return () => clearInterval(timerId);
-  }, [state.isActive, state.currentSessionId, state.speedMultiplier]);
+  }, [state.isActive, state.currentSessionId, state.speedMultiplier, userId]);
 
   // Actions
   const handleStart = () => {
@@ -203,20 +267,59 @@ export default function App() {
     };
 
     lastUpdatedRef.current = now;
-    setState((prev) => ({
-      ...prev,
+    const newState = {
+      ...state,
       isActive: true,
       currentSessionId: sessionId,
-      history: [newSession, ...prev.history],
-    }));
+      history: [newSession, ...state.history],
+    };
+    updateAndSaveState(newState);
   };
 
   const handlePause = () => {
     const now = Date.now();
-    setState((prev) => {
-      if (!prev.currentSessionId) return prev;
-      const updatedHistory = prev.history.map((s) => {
-        if (s.id === prev.currentSessionId) {
+    if (!state.currentSessionId) return;
+
+    const updatedHistory = state.history.map((s) => {
+      if (s.id === state.currentSessionId) {
+        return {
+          ...s,
+          endTime: now,
+          isActive: false,
+        };
+      }
+      return s;
+    });
+
+    const newState = {
+      ...state,
+      isActive: false,
+      currentSessionId: null,
+      history: updatedHistory,
+    };
+
+    updateAndSaveState(newState);
+    lastUpdatedRef.current = null;
+  };
+
+  const handleRecharge = (amount: number) => {
+    const newState = {
+      ...state,
+      balance: state.balance + amount,
+      totalDeposits: state.totalDeposits + amount,
+    };
+    updateAndSaveState(newState);
+  };
+
+  const handleResetBalance = () => {
+    let updatedHistory = state.history;
+    let isActive = state.isActive;
+    let currentSessionId = state.currentSessionId;
+    
+    if (state.isActive && state.currentSessionId) {
+      const now = Date.now();
+      updatedHistory = state.history.map((s) => {
+        if (s.id === state.currentSessionId) {
           return {
             ...s,
             endTime: now,
@@ -225,63 +328,27 @@ export default function App() {
         }
         return s;
       });
+      isActive = false;
+      currentSessionId = null;
+      lastUpdatedRef.current = null;
+    }
 
-      return {
-        ...prev,
-        isActive: false,
-        currentSessionId: null,
-        history: updatedHistory,
-      };
-    });
-    lastUpdatedRef.current = null;
-  };
-
-  const handleRecharge = (amount: number) => {
-    setState((prev) => ({
-      ...prev,
-      balance: prev.balance + amount,
-      totalDeposits: prev.totalDeposits + amount,
-    }));
-  };
-
-  const handleResetBalance = () => {
-    setState((prev) => {
-      let updatedHistory = prev.history;
-      let isActive = prev.isActive;
-      let currentSessionId = prev.currentSessionId;
-      
-      if (prev.isActive && prev.currentSessionId) {
-        const now = Date.now();
-        updatedHistory = prev.history.map((s) => {
-          if (s.id === prev.currentSessionId) {
-            return {
-              ...s,
-              endTime: now,
-              isActive: false,
-            };
-          }
-          return s;
-        });
-        isActive = false;
-        currentSessionId = null;
-        lastUpdatedRef.current = null;
-      }
-
-      return {
-        ...prev,
-        balance: 0,
-        isActive,
-        currentSessionId,
-        history: updatedHistory,
-      };
-    });
+    const newState = {
+      ...state,
+      balance: 0,
+      isActive,
+      currentSessionId,
+      history: updatedHistory,
+    };
+    updateAndSaveState(newState);
   };
 
   const handleSetSpeed = (speed: number) => {
-    setState((prev) => ({
-      ...prev,
+    const newState = {
+      ...state,
       speedMultiplier: speed,
-    }));
+    };
+    updateAndSaveState(newState);
   };
 
   const handleTimeSkip = (minutes: number) => {
@@ -289,40 +356,40 @@ export default function App() {
     const RATE_PER_MS = 0.10 / (3600 * 1000);
     const skipCost = skipMs * RATE_PER_MS;
 
-    setState((prev) => {
-      if (!prev.isActive || !prev.currentSessionId) return prev;
+    if (!state.isActive || !state.currentSessionId) return;
 
-      if (skipCost >= prev.balance) {
-        const finalAffordableMs = prev.balance / RATE_PER_MS;
-        const finalCost = prev.balance;
+    let newState: ParkingState;
 
-        const updatedHistory = prev.history.map((s) => {
-          if (s.id === prev.currentSessionId) {
-            return {
-              ...s,
-              endTime: s.startTime + s.elapsedTimeMs + finalAffordableMs,
-              elapsedTimeMs: s.elapsedTimeMs + finalAffordableMs,
-              cost: s.cost + finalCost,
-              isActive: false,
-            };
-          }
-          return s;
-        });
+    if (skipCost >= state.balance) {
+      const finalAffordableMs = state.balance / RATE_PER_MS;
+      const finalCost = state.balance;
 
-        setShowEmptyAlert(true);
+      const updatedHistory = state.history.map((s) => {
+        if (s.id === state.currentSessionId) {
+          return {
+            ...s,
+            endTime: s.startTime + s.elapsedTimeMs + finalAffordableMs,
+            elapsedTimeMs: s.elapsedTimeMs + finalAffordableMs,
+            cost: s.cost + finalCost,
+            isActive: false,
+          };
+        }
+        return s;
+      });
 
-        return {
-          ...prev,
-          balance: 0,
-          isActive: false,
-          currentSessionId: null,
-          history: updatedHistory,
-          totalSpent: prev.totalSpent + finalCost,
-        };
-      }
+      setShowEmptyAlert(true);
 
-      const updatedHistory = prev.history.map((s) => {
-        if (s.id === prev.currentSessionId) {
+      newState = {
+        ...state,
+        balance: 0,
+        isActive: false,
+        currentSessionId: null,
+        history: updatedHistory,
+        totalSpent: state.totalSpent + finalCost,
+      };
+    } else {
+      const updatedHistory = state.history.map((s) => {
+        if (s.id === state.currentSessionId) {
           return {
             ...s,
             elapsedTimeMs: s.elapsedTimeMs + skipMs,
@@ -332,17 +399,19 @@ export default function App() {
         return s;
       });
 
-      return {
-        ...prev,
-        balance: prev.balance - skipCost,
+      newState = {
+        ...state,
+        balance: state.balance - skipCost,
         history: updatedHistory,
-        totalSpent: prev.totalSpent + skipCost,
+        totalSpent: state.totalSpent + skipCost,
       };
-    });
+    }
+
+    updateAndSaveState(newState);
   };
 
   const handleClearHistory = () => {
-    setState({
+    const newState = {
       balance: 5.0,
       isActive: false,
       currentSessionId: null,
@@ -350,7 +419,8 @@ export default function App() {
       totalDeposits: 5.0,
       totalSpent: 0,
       speedMultiplier: 1,
-    });
+    };
+    updateAndSaveState(newState);
     localStorage.removeItem("parking_manager_state");
   };
 
@@ -389,10 +459,16 @@ export default function App() {
 
           <div className="flex items-center gap-6">
             <div className="text-right">
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Status del Sistema</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Base de Datos Nube</p>
               <p className="text-xs font-semibold flex items-center gap-1.5 justify-end">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Conectado: Sede Central
+                <span className={`w-2 h-2 ${dbSynced ? "bg-emerald-500 animate-pulse" : "bg-amber-500"} rounded-full`}></span> 
+                {dbSynced ? "Firestore Conectado" : "Estableciendo conexión..."}
               </p>
+              {userId && (
+                <p className="text-[9px] text-slate-400 font-mono tracking-tighter">
+                  ID: {userId.substring(0, 16)}...
+                </p>
+              )}
             </div>
           </div>
         </div>
