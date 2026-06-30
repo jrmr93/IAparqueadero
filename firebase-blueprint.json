@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "ParkingState": {
+      "title": "ParkingState",
+      "description": "Estado actual de parqueo del usuario",
+      "type": "object",
+      "properties": {
+        "balance": {
+          "type": "number",
+          "description": "Saldo disponible en USD"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indica si hay una sesión activa de parqueo"
+        },
+        "currentSessionId": {
+          "type": "string",
+          "description": "ID de la sesión activa actual o null"
+        },
+        "totalDeposits": {
+          "type": "number",
+          "description": "Monto total cargado por el usuario"
+        },
+        "totalSpent": {
+          "type": "number",
+          "description": "Monto total gastado por el usuario"
+        },
+        "speedMultiplier": {
+          "type": "number",
+          "description": "Multiplicador de velocidad de simulación"
+        },
+        "lastSavedTime": {
+          "type": "number",
+          "description": "Marca de tiempo del último guardado de estado"
+        }
+      },
+      "required": ["balance", "isActive", "totalDeposits", "totalSpent", "speedMultiplier"]
+    }
+  },
+  "firestore": {
+    "/parkingStates/{userId}": {
+      "schema": "ParkingState",
+      "description": "Colección que almacena el estado de parqueo de cada usuario"
+    }
+  }
+}
