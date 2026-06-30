@@ -52,14 +52,14 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 /**
- * Saves the current parking state of a user/device to Firestore.
+ * Saves the current parking state to Firestore.
  * To optimize performance and quotas, this is called during significant events
  * (start, pause, recharge, reset, etc.) and not on every tick.
  */
-export async function saveParkingStateToDb(userId: string, state: ParkingState): Promise<void> {
-  const path = `parkingStates/${userId}`;
+export async function saveParkingStateToDb(state: ParkingState): Promise<void> {
+  const path = "parkingStates/global";
   try {
-    const userDocRef = doc(db, "parkingStates", userId);
+    const userDocRef = doc(db, "parkingStates", "global");
     const dataToSave = {
       ...state,
       lastSavedTime: Date.now(),
@@ -71,12 +71,12 @@ export async function saveParkingStateToDb(userId: string, state: ParkingState):
 }
 
 /**
- * Loads the parking state of a user/device from Firestore.
+ * Loads the parking state from Firestore.
  */
-export async function loadParkingStateFromDb(userId: string): Promise<ParkingState | null> {
-  const path = `parkingStates/${userId}`;
+export async function loadParkingStateFromDb(): Promise<ParkingState | null> {
+  const path = "parkingStates/global";
   try {
-    const userDocRef = doc(db, "parkingStates", userId);
+    const userDocRef = doc(db, "parkingStates", "global");
     const docSnap = await getDoc(userDocRef);
     if (docSnap.exists()) {
       return docSnap.data() as ParkingState;
