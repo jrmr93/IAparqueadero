@@ -10,9 +10,12 @@ import ParkingBay from "./components/ParkingBay";
 import ParkingControls from "./components/ParkingControls";
 import SimulatorPanel from "./components/SimulatorPanel";
 import ParkingHistory from "./components/ParkingHistory";
-import { Car, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Car, AlertTriangle, CheckCircle2, User, CloudLightning, CloudOff } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { saveParkingStateToDb, loadParkingStateFromDb } from "./lib/db";
+import { auth } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import AuthModal from "./components/AuthModal";
 
 const DEFAULT_STATE: ParkingState = {
   balance: 5.0, // Preload with $5.00 for immediate testing
@@ -30,21 +33,38 @@ export default function App() {
   const [userId, setUserId] = useState<string>("");
   const [dbSynced, setDbSynced] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
   const lastUpdatedRef = useRef<number | null>(null);
 
-  // Initialize and check offline elapsed time on mount, loading from Firestore
+  // Monitor Firebase Auth state to set active profile ID (or guest ID)
   useEffect(() => {
-    let uId = localStorage.getItem("parking_userId");
-    if (!uId) {
-      uId = `user-${Math.random().toString(36).substring(2, 11)}-${Date.now().toString(36)}`;
-      localStorage.setItem("parking_userId", uId);
-    }
-    setUserId(uId);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+        setAuthEmail(user.email);
+      } else {
+        let guestId = localStorage.getItem("parking_userId");
+        if (!guestId) {
+          guestId = `user-${Math.random().toString(36).substring(2, 11)}-${Date.now().toString(36)}`;
+          localStorage.setItem("parking_userId", guestId);
+        }
+        setUserId(guestId);
+        setAuthEmail(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
-    const initializeState = async () => {
+  // Initialize/Load state from database whenever active userId changes
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadState = async () => {
+      setDbSynced(false);
       let loadedState: ParkingState | null = null;
       try {
-        const dbState = await loadParkingStateFromDb(uId);
+        const dbState = await loadParkingStateFromDb(userId);
         if (dbState) {
           loadedState = dbState;
           setDbSynced(true);
@@ -100,7 +120,7 @@ export default function App() {
             };
             setState(finalState);
             setShowEmptyAlert(true);
-            saveParkingStateToDb(uId, finalState);
+            saveParkingStateToDb(userId, finalState);
           } else {
             const updatedHistory = parsed.history.map((s) => {
               if (s.id === parsed.currentSessionId) {
@@ -120,7 +140,7 @@ export default function App() {
               totalSpent: parsed.totalSpent + offlineCost,
             };
             setState(finalState);
-            saveParkingStateToDb(uId, finalState);
+            saveParkingStateToDb(userId, finalState);
           }
         } else {
           setState(parsed);
@@ -130,8 +150,8 @@ export default function App() {
       }
     };
 
-    initializeState();
-  }, []);
+    loadState();
+  }, [userId]);
 
   // Centralized local state + Firestore save helper
   const updateAndSaveState = (newState: ParkingState) => {
@@ -457,8 +477,32 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="text-right">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 justify-end">
+            {/* Cloud/Sync Profile control */}
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center gap-2.5 px-4 py-2 bg-slate-800 hover:bg-slate-700/80 active:bg-slate-950 text-white rounded-xl border border-slate-700 hover:border-slate-600 transition-all cursor-pointer shadow-sm text-left group"
+              id="cloud-profile-pill"
+              title={authEmail ? "Administrar cuenta" : "Iniciar sesión para sincronizar"}
+            >
+              <div className="p-1.5 bg-blue-500/10 text-blue-400 rounded-lg group-hover:bg-blue-500/20 transition-all">
+                <User className="w-4 h-4" />
+              </div>
+              <div className="text-xs">
+                <div className="font-bold flex items-center gap-1.5">
+                  {authEmail ? (
+                    <span className="text-emerald-400 font-extrabold text-[9px] uppercase tracking-wider bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Sincronizado</span>
+                  ) : (
+                    <span className="text-amber-400 font-extrabold text-[9px] uppercase tracking-wider bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">Local / Invitado</span>
+                  )}
+                </div>
+                <p className="text-[10px] text-slate-400 truncate max-w-[140px] mt-0.5">
+                  {authEmail ? authEmail : "Guardar en la Nube"}
+                </p>
+              </div>
+            </button>
+
+            <div className="text-right hidden sm:block">
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Base de Datos Nube</p>
               <p className="text-xs font-semibold flex items-center gap-1.5 justify-end">
                 <span className={`w-2 h-2 ${dbSynced ? "bg-emerald-500 animate-pulse" : "bg-amber-500"} rounded-full`}></span> 
@@ -574,6 +618,20 @@ export default function App() {
               </button>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Cloud Authentication Modal */}
+      <AnimatePresence>
+        {isAuthModalOpen && (
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            currentUserEmail={authEmail}
+            onAuthSuccess={(newUserId) => {
+              setUserId(newUserId);
+            }}
+          />
         )}
       </AnimatePresence>
     </div>
