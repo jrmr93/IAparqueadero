@@ -97,16 +97,29 @@ async function startServer() {
     }
   });
 
-  // Interceptar la raíz "/" si se pide saldo explícitamente vía query param (ej. /?saldo) o JSON Header
+  // Interceptar la raíz "/" si se pide saldo explícitamente, si es una herramienta de terminal (cURL/wget) o JSON Header
   app.get("/", async (req, res, next) => {
-    if (req.query.saldo !== undefined || req.query.json !== undefined || req.headers.accept === "application/json") {
+    const userAgent = (req.headers["user-agent"] || "").toLowerCase();
+    const isCommandLine = userAgent.includes("curl") || userAgent.includes("wget") || userAgent.includes("httpie");
+
+    if (req.query.saldo !== undefined || req.query.json !== undefined || req.headers.accept === "application/json" || isCommandLine) {
       try {
         const balance = await getBalance();
+        
+        // Si es curl/wget y no pide explícitamente JSON, devolvemos texto plano para comodidad en terminal
+        if (isCommandLine && req.query.json === undefined && req.headers.accept !== "application/json") {
+          res.setHeader("Content-Type", "text/plain");
+          return res.status(200).send(balance.toFixed(4));
+        }
+
         return res.status(200).json({ 
           balance: parseFloat(balance.toFixed(4)), 
           formatted: `$${balance.toFixed(4)}` 
         });
       } catch (err) {
+        if (isCommandLine) {
+          return res.status(500).send("Error al obtener el saldo");
+        }
         return res.status(500).json({ error: "Error al obtener el saldo" });
       }
     }
