@@ -71,14 +71,22 @@ async function startServer() {
     return 5.0;
   }
 
-  // Endpoint 1: Retorna solo el número como texto (ideal para scripts simples, cURL, microcontroladores)
+  // Endpoint 1: Retorna un JSON con el saldo y su formato (o texto plano si se especifica ?text=true)
   app.get("/saldo", async (req, res) => {
     try {
       const balance = await getBalance();
-      res.setHeader("Content-Type", "text/plain");
-      res.status(200).send(balance.toFixed(4));
+      if (req.query.text !== undefined) {
+        res.setHeader("Content-Type", "text/plain");
+        return res.status(200).send(balance.toFixed(4));
+      }
+      res.status(200).json({
+        balance: parseFloat(balance.toFixed(4)),
+        formatted: `$${balance.toFixed(4)}`,
+        status: "success",
+        timestamp: Date.now()
+      });
     } catch (err) {
-      res.status(500).send("Error al obtener el saldo");
+      res.status(500).json({ error: "Error al obtener el saldo", status: "error" });
     }
   });
 
