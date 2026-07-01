@@ -141,8 +141,8 @@ export default function ParkingHistory({
         </div>
       </div>
 
-      {/* Table Section */}
-      <div className="overflow-x-auto border border-slate-200 rounded-xl">
+      {/* Table & List Section */}
+      <div className="border border-slate-200 rounded-xl overflow-hidden">
         {history.length === 0 ? (
           <div className="p-10 text-center text-slate-400">
             <Calendar className="w-12 h-12 mx-auto text-slate-300 mb-3" />
@@ -152,53 +152,111 @@ export default function ParkingHistory({
             </p>
           </div>
         ) : (
-          <table className="w-full text-left border-collapse text-xs" id="history-table">
-            <thead>
-              <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
-                <th className="p-3 pl-4">#</th>
-                <th className="p-3">Fecha</th>
-                <th className="p-3">Entrada</th>
-                <th className="p-3">Salida</th>
-                <th className="p-3">Duración</th>
-                <th className="p-3 text-right pr-4">Costo Cobrado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-slate-700">
+          <>
+            {/* Desktop View Table */}
+            <table className="hidden sm:table w-full text-left border-collapse text-xs" id="history-table">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                  <th className="p-3 pl-4">#</th>
+                  <th className="p-3">Fecha</th>
+                  <th className="p-3">Entrada</th>
+                  <th className="p-3">Salida</th>
+                  <th className="p-3">Duración</th>
+                  <th className="p-3 text-right pr-4">Costo Cobrado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 text-slate-700">
+                {history.map((session, index) => {
+                  const isCurrent = session.isActive;
+                  return (
+                    <tr
+                      key={session.id}
+                      id={`history-row-${session.id}`}
+                      className={`hover:bg-slate-50/50 transition-colors ${
+                        isCurrent ? "bg-rose-50/30 font-semibold text-rose-950" : ""
+                      }`}
+                    >
+                      <td className="p-3 pl-4 font-mono text-slate-400">
+                        {history.length - index}
+                      </td>
+                      <td className="p-3 text-slate-600 font-bold">
+                        {formatDate(session.startTime)}
+                      </td>
+                      <td className="p-3 font-mono">{formatTime(session.startTime)}</td>
+                      <td className="p-3 font-mono">
+                        {session.isActive ? (
+                          <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-sm font-bold text-[10px] uppercase tracking-wide animate-pulse">
+                            Estacionado
+                          </span>
+                        ) : (
+                          formatTime(session.endTime)
+                        )}
+                      </td>
+                      <td className="p-3 font-mono">{formatDuration(session.elapsedTimeMs)}</td>
+                      <td className="p-3 text-right pr-4 font-bold font-mono text-slate-900">
+                        ${session.cost.toFixed(4)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* Mobile View Card List */}
+            <div className="block sm:hidden divide-y divide-slate-100 bg-white" id="history-mobile-list">
               {history.map((session, index) => {
                 const isCurrent = session.isActive;
                 return (
-                  <tr
+                  <div
                     key={session.id}
-                    id={`history-row-${session.id}`}
-                    className={`hover:bg-slate-50/50 transition-colors ${
-                      isCurrent ? "bg-rose-50/30 font-semibold text-rose-950" : ""
+                    id={`history-card-${session.id}`}
+                    className={`p-4 flex flex-col gap-3 transition-colors ${
+                      isCurrent ? "bg-rose-50/40 border-l-4 border-rose-500" : ""
                     }`}
                   >
-                    <td className="p-3 pl-4 font-mono text-slate-400">
-                      {history.length - index}
-                    </td>
-                    <td className="p-3 text-slate-600 font-bold">
-                      {formatDate(session.startTime)}
-                    </td>
-                    <td className="p-3 font-mono">{formatTime(session.startTime)}</td>
-                    <td className="p-3 font-mono">
-                      {session.isActive ? (
-                        <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-sm font-bold text-[10px] uppercase tracking-wide animate-pulse">
-                          Estacionado
-                        </span>
-                      ) : (
-                        formatTime(session.endTime)
-                      )}
-                    </td>
-                    <td className="p-3 font-mono">{formatDuration(session.elapsedTimeMs)}</td>
-                    <td className="p-3 text-right pr-4 font-bold font-mono text-slate-900">
-                      ${session.cost.toFixed(4)}
-                    </td>
-                  </tr>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] text-slate-400 font-bold uppercase">
+                        Sesión #{history.length - index}
+                      </span>
+                      <span className={`font-mono font-bold text-sm ${isCurrent ? "text-rose-600 animate-pulse" : "text-slate-900"}`}>
+                        ${session.cost.toFixed(4)}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Fecha</p>
+                        <p className="text-slate-700 font-semibold mt-0.5">{formatDate(session.startTime)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Duración</p>
+                        <p className="text-slate-700 font-mono font-bold mt-0.5">{formatDuration(session.elapsedTimeMs)}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs pt-2.5 border-t border-dashed border-slate-100">
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Hora Entrada</p>
+                        <p className="text-slate-600 font-mono mt-0.5">{formatTime(session.startTime)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Hora Salida</p>
+                        <div className="mt-0.5">
+                          {session.isActive ? (
+                            <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded font-bold text-[9px] uppercase tracking-wide animate-pulse">
+                              Estacionado
+                            </span>
+                          ) : (
+                            <span className="text-slate-600 font-mono">{formatTime(session.endTime)}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
     </div>

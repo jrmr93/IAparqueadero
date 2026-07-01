@@ -473,48 +473,54 @@ export default function App() {
       {/* Main Container */}
       <main className="max-w-6xl mx-auto px-6 mt-6 space-y-6">
         {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Column Left (Interactive Parking spot + Live Controls) */}
-          <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6 lg:h-full">
-            <div className="h-full">
-              <ParkingBay
-                isActive={state.isActive}
-                formattedTime={getFormattedTime(currentDuration)}
-                accumulatedCost={currentCost}
-              />
-            </div>
-            <div className="h-full">
-              <ParkingControls
-                isActive={state.isActive}
-                balance={state.balance}
-                onStart={handleStart}
-                onPause={handlePause}
-                formattedTime={getFormattedTime(currentDuration)}
-                currentCost={currentCost}
-                startTime={activeSession?.startTime ?? null}
-              />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-stretch">
+          
+          {/* 1. Mi Monedero Digital (WalletCard) */}
+          {/* Mobile: Order 1 (Top!), Tablet: Col 1, Desktop: Cols 9-12 (Order 3) */}
+          <div className="col-span-1 md:col-span-1 lg:col-span-4 order-1 lg:order-3 h-full">
+            <WalletCard
+              balance={state.balance}
+              onRecharge={handleRecharge}
+              onResetBalance={handleResetBalance}
+              totalDeposits={state.totalDeposits}
+            />
           </div>
 
-          {/* Column Right (Digital Wallet + Simulation Panel) */}
-          <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6 lg:h-full">
-            <div className="h-full">
-              <WalletCard
-                balance={state.balance}
-                onRecharge={handleRecharge}
-                onResetBalance={handleResetBalance}
-                totalDeposits={state.totalDeposits}
-              />
-            </div>
-            <div className="h-full">
-              <SimulatorPanel
-                isActive={state.isActive}
-                speedMultiplier={state.speedMultiplier}
-                onSetSpeed={handleSetSpeed}
-                onTimeSkip={handleTimeSkip}
-              />
-            </div>
+          {/* 2. Estado de Estacionamiento (ParkingBay) */}
+          {/* Mobile: Order 2, Tablet: Col 2, Desktop: Cols 1-4 (Order 1) */}
+          <div className="col-span-1 md:col-span-1 lg:col-span-4 order-2 lg:order-1 h-full">
+            <ParkingBay
+              isActive={state.isActive}
+              formattedTime={getFormattedTime(currentDuration)}
+              accumulatedCost={currentCost}
+            />
           </div>
+
+          {/* 3. Acciones y Control (ParkingControls) */}
+          {/* Mobile: Order 3, Tablet: Col 1 Row 2, Desktop: Cols 5-8 (Order 2) */}
+          <div className="col-span-1 md:col-span-1 lg:col-span-4 order-3 lg:order-2 h-full">
+            <ParkingControls
+              isActive={state.isActive}
+              balance={state.balance}
+              onStart={handleStart}
+              onPause={handlePause}
+              formattedTime={getFormattedTime(currentDuration)}
+              currentCost={currentCost}
+              startTime={activeSession?.startTime ?? null}
+            />
+          </div>
+
+          {/* 4. Panel de Simulación (SimulatorPanel) */}
+          {/* Mobile: Order 4, Tablet: Col 2 Row 2, Desktop: Cols 9-12 Row 2 (Order 4) */}
+          <div className="col-span-1 md:col-span-1 lg:col-span-4 order-4 lg:order-4 lg:col-start-9 h-full">
+            <SimulatorPanel
+              isActive={state.isActive}
+              speedMultiplier={state.speedMultiplier}
+              onSetSpeed={handleSetSpeed}
+              onTimeSkip={handleTimeSkip}
+            />
+          </div>
+
         </div>
 
         {/* Parking History and Stats Logs */}

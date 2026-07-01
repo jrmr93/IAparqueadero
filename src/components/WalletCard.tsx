@@ -205,7 +205,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, totalD
                 key={amount}
                 id={`btn-recharge-${amount}`}
                 onClick={() => handleQuickRecharge(amount)}
-                className="py-2.5 px-1 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 font-bold text-sm rounded-lg transition-all flex items-center justify-center gap-0.5 shadow-xs"
+                className="py-3 sm:py-2.5 px-1 bg-white hover:bg-blue-50 active:bg-blue-600 active:text-white border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 font-bold text-sm rounded-lg transition-all flex items-center justify-center gap-0.5 shadow-xs cursor-pointer"
               >
                 <Plus className="w-3 h-3 text-slate-400" />
                 ${amount.toFixed(0)}
@@ -218,7 +218,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, totalD
               <button
                 id="btn-show-custom-recharge"
                 onClick={() => setShowCustomInput(true)}
-                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-slate-200 cursor-pointer"
+                className="w-full py-3 sm:py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-slate-200 cursor-pointer"
               >
                 <Coins className="w-4 h-4 text-slate-500" />
                 Cargar otro monto
@@ -227,7 +227,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, totalD
               <button
                 id="btn-reset-balance-direct"
                 onClick={() => setShowConfirmReset(true)}
-                className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-rose-200 cursor-pointer"
+                className="w-full py-3 sm:py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-rose-200 cursor-pointer"
               >
                 <RotateCcw className="w-4 h-4 text-rose-500" />
                 Poner saldo en $0.00
@@ -247,13 +247,13 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, totalD
                     id="custom-recharge-input"
                     value={customAmount}
                     onChange={(e) => setCustomAmount(e.target.value)}
-                    className="w-full pl-6 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800"
+                    className="w-full pl-6 pr-3 py-3 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800"
                   />
                 </div>
                 <button
                   type="submit"
                   id="btn-submit-custom-recharge"
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-all shadow-md shadow-blue-100 cursor-pointer"
+                  className="px-4 py-3 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-all shadow-md shadow-blue-100 cursor-pointer"
                 >
                   Cargar
                 </button>
@@ -264,7 +264,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, totalD
                     setShowCustomInput(false);
                     setCustomAmount("");
                   }}
-                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 text-sm font-medium rounded-lg transition-all cursor-pointer"
+                  className="px-2.5 py-3 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 text-sm font-medium rounded-lg transition-all cursor-pointer"
                 >
                   X
                 </button>
@@ -273,7 +273,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, totalD
               <button
                 id="btn-reset-balance-direct"
                 onClick={() => setShowConfirmReset(true)}
-                className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-rose-200 cursor-pointer"
+                className="w-full py-3 sm:py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-rose-200 cursor-pointer"
               >
                 <RotateCcw className="w-4 h-4 text-rose-500" />
                 Poner saldo en $0.00
