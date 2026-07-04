@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { Wallet, Plus, Coins, Clock, AlertTriangle, RotateCcw } from "lucide-react";
+import { Wallet, Coins, Clock, AlertTriangle, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface WalletCardProps {
@@ -15,16 +15,8 @@ interface WalletCardProps {
 
 export default function WalletCard({ balance, onRecharge, onResetBalance }: WalletCardProps) {
   const [customAmount, setCustomAmount] = useState<string>("");
-  const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [showConfirmReset, setShowConfirmReset] = useState<boolean>(false);
-
-  const presets = [1.0, 3.0, 5.0, 10.0];
-
-  const handleQuickRecharge = (amount: number) => {
-    onRecharge(amount);
-    triggerNotification(`¡Se han cargado $${amount.toFixed(2)} correctamente!`);
-  };
 
   const handleCustomRecharge = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +29,6 @@ export default function WalletCard({ balance, onRecharge, onResetBalance }: Wall
       onRecharge(amount);
       triggerNotification(`¡Se han cargado $${amount.toFixed(2)} correctamente!`);
       setCustomAmount("");
-      setShowCustomInput(false);
     } else {
       triggerNotification("Por favor ingresa un monto válido mayor a $0");
     }
@@ -157,90 +148,43 @@ export default function WalletCard({ balance, onRecharge, onResetBalance }: Wall
           )}
         </AnimatePresence>
 
-        {/* Presets and Custom Recharges */}
+        {/* Custom Recharge */}
         <div className="mb-4">
-          <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Cargar Dinero Rápido</p>
-          <div className="grid grid-cols-4 gap-2 mb-3">
-            {presets.map((amount) => (
+          <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Cargar Saldo</p>
+          <div className="space-y-3">
+            <form onSubmit={handleCustomRecharge} className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max="100"
+                  placeholder="Monto"
+                  id="custom-recharge-input"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                  className="w-full pl-6 pr-3 py-3 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800"
+                />
+              </div>
               <button
-                key={amount}
-                id={`btn-recharge-${amount}`}
-                onClick={() => handleQuickRecharge(amount)}
-                className="py-3 sm:py-2.5 px-1 bg-white hover:bg-blue-50 active:bg-blue-600 active:text-white border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 font-bold text-sm rounded-lg transition-all flex items-center justify-center gap-0.5 shadow-xs cursor-pointer"
+                type="submit"
+                id="btn-submit-custom-recharge"
+                className="px-4 py-3 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-all shadow-md shadow-blue-100 cursor-pointer"
               >
-                <Plus className="w-3 h-3 text-slate-400" />
-                ${amount.toFixed(0)}
+                Cargar
               </button>
-            ))}
+            </form>
+
+            <button
+              id="btn-reset-balance-direct"
+              onClick={() => setShowConfirmReset(true)}
+              className="w-full py-3 sm:py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-rose-200 cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4 text-rose-500" />
+              Poner saldo en $0.00
+            </button>
           </div>
-
-          {!showCustomInput ? (
-            <div className="space-y-2">
-              <button
-                id="btn-show-custom-recharge"
-                onClick={() => setShowCustomInput(true)}
-                className="w-full py-3 sm:py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-slate-200 cursor-pointer"
-              >
-                <Coins className="w-4 h-4 text-slate-500" />
-                Cargar otro monto
-              </button>
-              
-              <button
-                id="btn-reset-balance-direct"
-                onClick={() => setShowConfirmReset(true)}
-                className="w-full py-3 sm:py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-rose-200 cursor-pointer"
-              >
-                <RotateCcw className="w-4 h-4 text-rose-500" />
-                Poner saldo en $0.00
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <form onSubmit={handleCustomRecharge} className="flex gap-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    max="100"
-                    placeholder="Monto"
-                    id="custom-recharge-input"
-                    value={customAmount}
-                    onChange={(e) => setCustomAmount(e.target.value)}
-                    className="w-full pl-6 pr-3 py-3 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  id="btn-submit-custom-recharge"
-                  className="px-4 py-3 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-all shadow-md shadow-blue-100 cursor-pointer"
-                >
-                  Cargar
-                </button>
-                <button
-                  type="button"
-                  id="btn-cancel-custom-recharge"
-                  onClick={() => {
-                    setShowCustomInput(false);
-                    setCustomAmount("");
-                  }}
-                  className="px-2.5 py-3 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 text-sm font-medium rounded-lg transition-all cursor-pointer"
-                >
-                  X
-                </button>
-              </form>
-
-              <button
-                id="btn-reset-balance-direct"
-                onClick={() => setShowConfirmReset(true)}
-                className="w-full py-3 sm:py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-rose-200 cursor-pointer"
-              >
-                <RotateCcw className="w-4 h-4 text-rose-500" />
-                Poner saldo en $0.00
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
