@@ -232,18 +232,16 @@ async function startServer() {
   const handleSetSaldoRequest = async (req: express.Request, res: express.Response) => {
     try {
       const saldoParam = req.params.saldo || req.query.saldo || req.query.value;
-      if (saldoParam === undefined) {
-        return res.status(400).json({
-          status: "error",
-          message: "Debe proporcionar un valor de saldo, ej. ?saldo=10 o /set-saldo/10"
-        });
-      }
+      
+      const isNewMessage = (saldoParam !== undefined && String(saldoParam).toLowerCase() === "new") ||
+                           (req.query.msg && String(req.query.msg).toLowerCase() === "new") ||
+                           (req.query.message && String(req.query.message).toLowerCase() === "new") ||
+                           req.path.endsWith("/new");
 
-      const newBalance = parseFloat(String(saldoParam));
-      if (isNaN(newBalance) || newBalance < 0) {
+      if (saldoParam === undefined && !isNewMessage) {
         return res.status(400).json({
           status: "error",
-          message: "El saldo proporcionado debe ser un número válido mayor o igual a 0"
+          message: "Debe proporcionar un valor de saldo, ej. ?saldo=10 o /set-saldo/10 o enviar un comando 'new'"
         });
       }
 
@@ -307,6 +305,73 @@ async function startServer() {
         }
         return 0;
       };
+
+      if (isNewMessage) {
+        // Cancelar / pausar la sesión de parqueo actual
+        if (parsedState.isActive && parsedState.currentSessionId) {
+          const lastSavedMs = getMsFromTimestamp(parsedState.lastSavedTime || now);
+          const elapsedRealMs = now - lastSavedMs;
+          const speed = parsedState.speedMultiplier || 1;
+          const simDeltaMs = elapsedRealMs > 0 ? elapsedRealMs * speed : 0;
+          const RATE_PER_MS = 0.10 / (3600 * 1000);
+          const sessionCost = simDeltaMs * RATE_PER_MS;
+
+          // Descontar costo del saldo
+          parsedState.balance = Math.max(0, (parsedState.balance || 0) - sessionCost);
+
+          parsedState.history = (parsedState.history || []).map((s: any) => {
+            if (s.id === parsedState.currentSessionId) {
+              return {
+                ...s,
+                endTime: now,
+                elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
+                cost: s.cost + sessionCost,
+                isActive: false
+              };
+            }
+            return s;
+          });
+          parsedState.totalSpent = (parsedState.totalSpent || 0) + sessionCost;
+          parsedState.isActive = false;
+          parsedState.currentSessionId = null;
+        }
+
+        parsedState.lastSavedTime = now;
+
+        // Guardar
+        if (isFromFirestore && dbFirebase) {
+          try {
+            const docRef = doc(dbFirebase, "parkingStates", "global");
+            await setDoc(docRef, parsedState);
+          } catch (err) {
+            console.error("Error al guardar en Firestore para comando 'new':", err);
+          }
+        }
+        try {
+          fs.writeFileSync(fallbackPath, JSON.stringify(parsedState, null, 2), "utf8");
+        } catch (e) {
+          console.error("Error al guardar local-parking-state.json para comando 'new':", e);
+        }
+
+        return res.status(200).json({
+          status: "success",
+          message: "Sesión de parqueo cancelada con éxito mediante mensaje 'new'.",
+          data: {
+            balance: parsedState.balance,
+            isActive: parsedState.isActive,
+            currentSessionId: parsedState.currentSessionId,
+            timestamp: now
+          }
+        });
+      }
+
+      const newBalance = parseFloat(String(saldoParam));
+      if (isNaN(newBalance) || newBalance < 0) {
+        return res.status(400).json({
+          status: "error",
+          message: "El saldo proporcionado debe ser un número válido mayor o igual a 0, o enviar 'new' para cancelar la sesión."
+        });
+      }
 
       // 2. Si hay una sesión activa, finalizarla primero calculando la diferencia acumulada
       if (parsedState.isActive && parsedState.currentSessionId && parsedState.lastSavedTime) {
@@ -401,11 +466,13 @@ async function startServer() {
     }
   };
 
-  // Registrar rutas para set-saldo
+  // Registrar rutas para set-saldo y cancelamiento por "new"
   app.get("/api/set-saldo", handleSetSaldoRequest);
   app.get("/api/set-saldo/:saldo", handleSetSaldoRequest);
   app.get("/set-saldo", handleSetSaldoRequest);
   app.get("/set-saldo/:saldo", handleSetSaldoRequest);
+  app.get("/api/new", handleSetSaldoRequest);
+  app.get("/new", handleSetSaldoRequest);
 
   // Interceptar la raíz "/" si se pide saldo explícitamente, si es una herramienta de terminal (cURL/wget) o JSON Header
   app.get("/", async (req, res, next) => {
