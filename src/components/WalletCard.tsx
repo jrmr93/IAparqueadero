@@ -90,7 +90,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, totalD
         <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-5 mb-4">
           <div className="flex justify-between items-center mb-1">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Saldo Disponible</p>
-            {balance > 0 && !showConfirmReset && (
+            {balance > 0 && (
               <button
                 onClick={() => setShowConfirmReset(true)}
                 className="text-[10px] font-bold text-slate-400 hover:text-rose-600 uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
@@ -122,45 +122,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, totalD
             </span>
           </div>
 
-          <AnimatePresence>
-            {showConfirmReset && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-3 pt-3 border-t border-slate-200/80 text-xs overflow-hidden"
-                id="confirm-reset-container"
-              >
-                <div className="flex items-start gap-2 text-rose-800 bg-rose-50 border border-rose-100 p-2.5 rounded-lg">
-                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-                  <div className="w-full">
-                    <p className="font-bold">¿Deseas reiniciar tu saldo a $0?</p>
-                    <p className="text-[10px] text-rose-600 mt-0.5 leading-tight">Esta acción vaciará el saldo y detendrá de inmediato cualquier sesión de parqueo activa.</p>
-                    <div className="mt-2.5 flex items-center gap-2 justify-end">
-                      <button
-                        onClick={() => setShowConfirmReset(false)}
-                        className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-bold text-[9px] uppercase cursor-pointer"
-                        id="btn-cancel-reset-balance"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={() => {
-                          onResetBalance();
-                          setShowConfirmReset(false);
-                          triggerNotification("Saldo reiniciado a $0.00 USD");
-                        }}
-                        className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded font-bold text-[9px] uppercase cursor-pointer"
-                        id="btn-confirm-reset-balance"
-                      >
-                        Sí, reiniciar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Inline confirmation removed in favor of gorgeous backdrop overlay modal */}
         </div>
 
         {/* Alerts */}
@@ -301,6 +263,68 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, totalD
           >
             {notification}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Reset Confirmation Backdrop Overlay Modal */}
+      <AnimatePresence>
+        {showConfirmReset && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" id="reset-modal-overlay">
+            {/* Backdrop click to cancel */}
+            <div className="absolute inset-0 bg-transparent" onClick={() => setShowConfirmReset(false)}></div>
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-150 z-10 overflow-hidden text-left"
+              id="reset-modal-content"
+            >
+              {/* Decorative top colored warning accent line */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-rose-500"></div>
+              
+              <div className="flex items-start gap-4 mt-1">
+                <div className="p-3 bg-rose-50 text-rose-500 rounded-xl shrink-0">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div className="space-y-2 flex-1">
+                  <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                    ¿Confirmar Reinicio de Saldo?
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    ¿Estás seguro de que realmente quieres poner tu saldo en <strong className="text-slate-900 font-bold">$0.00 USD</strong>?
+                  </p>
+                  <div className="text-xs text-rose-700 bg-rose-50/70 border border-rose-100 p-3 rounded-xl leading-relaxed mt-2">
+                    <strong>¡Atención!</strong> Esta acción vaciará completamente el saldo del monedero y detendrá de inmediato cualquier sesión de parqueo activa.
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmReset(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                  id="btn-modal-cancel-reset"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onResetBalance();
+                    setShowConfirmReset(false);
+                    triggerNotification("Saldo reiniciado a $0.00 USD");
+                  }}
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-rose-200 cursor-pointer"
+                  id="btn-modal-confirm-reset"
+                >
+                  Sí, poner en $0.00
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

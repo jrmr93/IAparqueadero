@@ -8,7 +8,6 @@ import { ParkingState, ParkingSession } from "./types";
 import WalletCard from "./components/WalletCard";
 import ParkingBay from "./components/ParkingBay";
 import ParkingControls from "./components/ParkingControls";
-import SimulatorPanel from "./components/SimulatorPanel";
 import ParkingHistory from "./components/ParkingHistory";
 import { Car, AlertTriangle, CheckCircle2, Cloud, CloudOff } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -531,16 +530,7 @@ export default function App() {
             />
           </div>
 
-          {/* 4. Panel de Simulación (SimulatorPanel) */}
-          {/* Mobile: Order 4, Tablet: Col 2 Row 2, Desktop: Cols 9-12 Row 2 (Order 4) */}
-          <div className="col-span-1 md:col-span-1 lg:col-span-4 order-4 lg:order-4 lg:col-start-9 h-full">
-            <SimulatorPanel
-              isActive={state.isActive}
-              speedMultiplier={state.speedMultiplier}
-              onSetSpeed={handleSetSpeed}
-              onTimeSkip={handleTimeSkip}
-            />
-          </div>
+
 
         </div>
 
