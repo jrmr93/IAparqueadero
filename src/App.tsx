@@ -538,7 +538,6 @@ export default function App() {
               balance={state.balance}
               onRecharge={handleRecharge}
               onResetBalance={handleResetBalance}
-              totalDeposits={state.totalDeposits}
             />
           </div>
 
@@ -574,7 +573,6 @@ export default function App() {
         <div className="w-full">
           <ParkingHistory
             history={state.history}
-            totalDeposits={state.totalDeposits}
             totalSpent={state.totalSpent}
             onClearHistory={handleClearHistory}
           />

@@ -9,14 +9,12 @@ import { History, Trash2, Calendar, Clock, DollarSign, RefreshCw } from "lucide-
 
 interface ParkingHistoryProps {
   history: ParkingSession[];
-  totalDeposits: number;
   totalSpent: number;
   onClearHistory: () => void;
 }
 
 export default function ParkingHistory({
   history,
-  totalDeposits,
   totalSpent,
   onClearHistory,
 }: ParkingHistoryProps) {
@@ -109,17 +107,7 @@ export default function ParkingHistory({
       </div>
 
       {/* Stats Mini Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex items-center gap-3">
-          <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg">
-            <DollarSign className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Total Cargado</p>
-            <p className="text-lg font-black text-slate-800 font-sans">${totalDeposits.toFixed(2)}</p>
-          </div>
-        </div>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex items-center gap-3">
           <div className="p-2.5 bg-rose-50 text-rose-600 rounded-lg">
             <DollarSign className="w-5 h-5" />

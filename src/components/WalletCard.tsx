@@ -11,10 +11,9 @@ interface WalletCardProps {
   balance: number;
   onRecharge: (amount: number) => void;
   onResetBalance: () => void;
-  totalDeposits: number;
 }
 
-export default function WalletCard({ balance, onRecharge, onResetBalance, totalDeposits }: WalletCardProps) {
+export default function WalletCard({ balance, onRecharge, onResetBalance }: WalletCardProps) {
   const [customAmount, setCustomAmount] = useState<string>("");
   const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
   const [notification, setNotification] = useState<string | null>(null);
@@ -245,12 +244,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, totalD
         </div>
       </div>
 
-      <div className="border-t border-slate-100 pt-4 mt-2">
-        <div className="flex justify-between items-center text-xs text-slate-400">
-          <span>Depósitos totales:</span>
-          <span className="font-mono text-slate-600 font-bold">${totalDeposits.toFixed(2)}</span>
-        </div>
-      </div>
+
 
       {/* Floating Recharge Toast Notification */}
       <AnimatePresence>
