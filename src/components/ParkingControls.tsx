@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Play, Square, LogIn, LogOut, ArrowRight, ShieldCheck, History } from "lucide-react";
-import { motion } from "motion/react";
+import { useState } from "react";
+import { Play, Square, LogIn, LogOut, ArrowRight, ShieldCheck, History, AlertTriangle, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 
 interface ParkingControlsProps {
   isActive: boolean;
@@ -26,6 +27,8 @@ export default function ParkingControls({
   startTime,
 }: ParkingControlsProps) {
   
+  const [showConfirmStart, setShowConfirmStart] = useState(false);
+  const [showConfirmPause, setShowConfirmPause] = useState(false);
   const hasNoBalance = balance <= 0;
 
   // Format real clock time for the start timestamp
@@ -111,7 +114,7 @@ export default function ParkingControls({
             type="button"
             id="btn-start-parking"
             disabled={hasNoBalance}
-            onClick={onStart}
+            onClick={() => setShowConfirmStart(true)}
             className={`w-full py-3.5 px-4 font-bold text-base rounded-xl transition-all shadow-md flex items-center justify-center gap-2 ${
               hasNoBalance
                 ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
@@ -125,7 +128,7 @@ export default function ParkingControls({
           <button
             type="button"
             id="btn-stop-parking"
-            onClick={onPause}
+            onClick={() => setShowConfirmPause(true)}
             className="w-full py-3.5 px-4 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white font-bold text-base rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
           >
             <LogOut className="w-5 h-5 shrink-0" />
@@ -139,6 +142,122 @@ export default function ParkingControls({
           </p>
         )}
       </div>
+
+      {/* Confirm Start Modal */}
+      <AnimatePresence>
+        {showConfirmStart && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" id="start-modal-overlay">
+            <div className="absolute inset-0 bg-transparent" onClick={() => setShowConfirmStart(false)}></div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-150 z-10 overflow-hidden text-left"
+              id="start-modal-content"
+            >
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-blue-600"></div>
+              
+              <div className="flex items-start gap-4 mt-1">
+                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div className="space-y-2 flex-1">
+                  <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                    ¿Iniciar Sesión de Parqueo?
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    ¿Estás seguro de que deseas registrar una entrada? Se iniciará el cobro por tiempo transcurrido en el parqueo.
+                  </p>
+                  <div className="text-xs text-blue-700 bg-blue-50/70 border border-blue-100 p-3 rounded-xl leading-relaxed mt-2">
+                    <strong>Tarifa activa:</strong> $0.10 USD por hora ($0.00167 USD por minuto). El costo se debitará automáticamente de tu saldo disponible.
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmStart(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                  id="btn-modal-cancel-start"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onStart();
+                    setShowConfirmStart(false);
+                  }}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-200 cursor-pointer"
+                  id="btn-modal-confirm-start"
+                >
+                  Confirmar Entrada
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Confirm Pause Modal */}
+      <AnimatePresence>
+        {showConfirmPause && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" id="pause-modal-overlay">
+            <div className="absolute inset-0 bg-transparent" onClick={() => setShowConfirmPause(false)}></div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-150 z-10 overflow-hidden text-left"
+              id="pause-modal-content"
+            >
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-amber-500"></div>
+              
+              <div className="flex items-start gap-4 mt-1">
+                <div className="p-3 bg-amber-50 text-amber-500 rounded-xl shrink-0">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div className="space-y-2 flex-1">
+                  <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                    ¿Pausar Sesión de Parqueo?
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    ¿Estás seguro de que deseas pausar y registrar tu salida? Esto detendrá la acumulación de cobros de forma inmediata.
+                  </p>
+                  <div className="text-xs text-amber-700 bg-amber-50/70 border border-amber-100 p-3 rounded-xl leading-relaxed mt-2">
+                    <strong>Resumen actual:</strong> Tiempo parqueado: <strong className="font-mono text-slate-800">{formattedTime}</strong> con un costo acumulado de <strong className="font-mono text-slate-800">${currentCost.toFixed(4)} USD</strong>.
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPause(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                  id="btn-modal-cancel-pause"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPause();
+                    setShowConfirmPause(false);
+                  }}
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-amber-200 cursor-pointer"
+                  id="btn-modal-confirm-pause"
+                >
+                  Sí, Pausar Parqueo
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
