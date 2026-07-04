@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { ParkingState } from "../types";
 
@@ -85,5 +85,19 @@ export async function loadParkingStateFromDb(): Promise<ParkingState | null> {
   } catch (error) {
     handleFirestoreError(error, OperationType.GET, path);
   }
+}
+
+/**
+ * Subscribes to real-time changes of the parking state in Firestore.
+ */
+export function subscribeParkingState(callback: (state: ParkingState) => void): () => void {
+  const userDocRef = doc(db, "parkingStates", "global");
+  return onSnapshot(userDocRef, (snapshot) => {
+    if (snapshot.exists()) {
+      callback(snapshot.data() as ParkingState);
+    }
+  }, (error) => {
+    console.error("Firestore Subscribe Error:", error);
+  });
 }
 

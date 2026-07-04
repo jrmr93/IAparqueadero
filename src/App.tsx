@@ -11,7 +11,7 @@ import ParkingControls from "./components/ParkingControls";
 import ParkingHistory from "./components/ParkingHistory";
 import { Car, AlertTriangle, CheckCircle2, Cloud, CloudOff } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { saveParkingStateToDb, loadParkingStateFromDb } from "./lib/db";
+import { saveParkingStateToDb, loadParkingStateFromDb, subscribeParkingState } from "./lib/db";
 
 const DEFAULT_STATE: ParkingState = {
   balance: 5.0, // Preload with $5.00 for immediate testing
@@ -146,20 +146,56 @@ export default function App() {
     loadState();
   }, []);
 
+  // Real-time listener for remote changes (e.g. from the API / set-saldo url)
+  useEffect(() => {
+    const unsubscribe = subscribeParkingState((remoteState) => {
+      setState((current) => {
+        const remoteSavedTime = remoteState.lastSavedTime || 0;
+        const currentSavedTime = current.lastSavedTime || 0;
+
+        // Only overwrite current state if the update was made externally
+        // (lastSavedTime is strictly newer by more than a brief network lag)
+        // or if there are important structural differences
+        const hasStructuralDiff = 
+          remoteState.isActive !== current.isActive || 
+          remoteState.currentSessionId !== current.currentSessionId ||
+          Math.abs(remoteState.balance - current.balance) > 0.01;
+
+        if (hasStructuralDiff || remoteSavedTime > currentSavedTime + 1000) {
+          // Reset local timer reference if active state is updated
+          if (remoteState.isActive) {
+            lastUpdatedRef.current = Date.now();
+          } else {
+            lastUpdatedRef.current = null;
+          }
+
+          // Also update localStorage
+          localStorage.setItem("parking_manager_state", JSON.stringify(remoteState));
+          return remoteState;
+        }
+        return current;
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   // Centralized local state + Firestore save helper
   const updateAndSaveState = (newState: ParkingState) => {
-    setState(newState);
-    
-    // Save to local storage for quick offline recovery
-    const stateToSave = {
+    const stateWithTimestamp = {
       ...newState,
       lastSavedTime: Date.now(),
     };
-    localStorage.setItem("parking_manager_state", JSON.stringify(stateToSave));
+    setState(stateWithTimestamp);
+    
+    // Save to local storage for quick offline recovery
+    localStorage.setItem("parking_manager_state", JSON.stringify(stateWithTimestamp));
     
     // Save to Firestore DB
     setIsSaving(true);
-    saveParkingStateToDb(newState)
+    saveParkingStateToDb(stateWithTimestamp)
       .then(() => {
         setDbSynced(true);
         setIsSaving(false);
