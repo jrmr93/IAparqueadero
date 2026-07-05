@@ -17,6 +17,8 @@ export default function WalletCard({ balance, onRecharge, onResetBalance }: Wall
   const [customAmount, setCustomAmount] = useState<string>("");
   const [notification, setNotification] = useState<string | null>(null);
   const [showConfirmReset, setShowConfirmReset] = useState<boolean>(false);
+  const [showConfirmRecharge, setShowConfirmRecharge] = useState<boolean>(false);
+  const [amountToConfirm, setAmountToConfirm] = useState<number>(0);
 
   const handleCustomRecharge = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,12 +28,18 @@ export default function WalletCard({ balance, onRecharge, onResetBalance }: Wall
         triggerNotification("El monto máximo por recarga es de $100.00");
         return;
       }
-      onRecharge(amount);
-      triggerNotification(`¡Se han cargado $${amount.toFixed(2)} correctamente!`);
-      setCustomAmount("");
+      setAmountToConfirm(amount);
+      setShowConfirmRecharge(true);
     } else {
       triggerNotification("Por favor ingresa un monto válido mayor a $0");
     }
+  };
+
+  const confirmCustomRecharge = () => {
+    onRecharge(amountToConfirm);
+    triggerNotification(`¡Se han cargado $${amountToConfirm.toFixed(2)} correctamente!`);
+    setCustomAmount("");
+    setShowConfirmRecharge(false);
   };
 
   const triggerNotification = (message: string) => {
@@ -259,6 +267,61 @@ export default function WalletCard({ balance, onRecharge, onResetBalance }: Wall
                   id="btn-modal-confirm-reset"
                 >
                   Sí, poner en $0.00
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Recharge Confirmation Backdrop Overlay Modal */}
+      <AnimatePresence>
+        {showConfirmRecharge && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" id="recharge-modal-overlay">
+            {/* Backdrop click to cancel */}
+            <div className="absolute inset-0 bg-transparent" onClick={() => setShowConfirmRecharge(false)}></div>
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-150 z-10 overflow-hidden text-left"
+              id="recharge-modal-content"
+            >
+              {/* Decorative top colored accent line */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-blue-500"></div>
+              
+              <div className="flex items-start gap-4 mt-1">
+                <div className="p-3 bg-blue-50 text-blue-500 rounded-xl shrink-0">
+                  <Coins className="w-6 h-6" />
+                </div>
+                <div className="space-y-2 flex-1">
+                  <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                    ¿Confirmar Carga de Saldo?
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    ¿Estás seguro de que quieres cargar un monto manual de <strong className="text-slate-900 font-bold">${amountToConfirm.toFixed(2)} USD</strong> a tu monedero?
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmRecharge(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                  id="btn-modal-cancel-recharge"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmCustomRecharge}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-200 cursor-pointer"
+                  id="btn-modal-confirm-recharge"
+                >
+                  Sí, cargar
                 </button>
               </div>
             </motion.div>

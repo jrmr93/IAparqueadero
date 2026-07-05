@@ -200,11 +200,11 @@ async function startServer() {
       const balance = await getAndUpdateBalance();
       if (req.query.text !== undefined) {
         res.setHeader("Content-Type", "text/plain");
-        return res.status(200).send(balance.toFixed(4));
+        return res.status(200).send(balance.toFixed(2));
       }
       res.status(200).json({
-        balance: parseFloat(balance.toFixed(4)),
-        formatted: `$${balance.toFixed(4)}`,
+        balance: parseFloat(balance.toFixed(2)),
+        formatted: `$${balance.toFixed(2)}`,
         status: "success",
         timestamp: Date.now()
       });
@@ -218,8 +218,8 @@ async function startServer() {
     try {
       const balance = await getAndUpdateBalance();
       res.status(200).json({ 
-        balance: parseFloat(balance.toFixed(4)), 
-        formatted: `$${balance.toFixed(4)}`,
+        balance: parseFloat(balance.toFixed(2)), 
+        formatted: `$${balance.toFixed(2)}`,
         status: "success",
         timestamp: Date.now()
       });
@@ -357,7 +357,7 @@ async function startServer() {
           status: "success",
           message: "Sesión de parqueo cancelada con éxito mediante mensaje 'new'.",
           data: {
-            balance: parsedState.balance,
+            balance: parseFloat(parsedState.balance.toFixed(2)),
             isActive: parsedState.isActive,
             currentSessionId: parsedState.currentSessionId,
             timestamp: now
@@ -450,7 +450,7 @@ async function startServer() {
           ? `Saldo establecido en $${newBalance.toFixed(2)} USD y nueva sesión de parqueo iniciada automáticamente.`
           : `Saldo establecido en $${newBalance.toFixed(2)} USD (sesiones desactivadas por saldo cero).`,
         data: {
-          balance: parsedState.balance,
+          balance: parseFloat(parsedState.balance.toFixed(2)),
           isActive: parsedState.isActive,
           currentSessionId: parsedState.currentSessionId,
           timestamp: now
@@ -486,12 +486,12 @@ async function startServer() {
         // Si es curl/wget y no pide explícitamente JSON, devolvemos texto plano para comodidad en terminal
         if (isCommandLine && req.query.json === undefined && req.headers.accept !== "application/json") {
           res.setHeader("Content-Type", "text/plain");
-          return res.status(200).send(balance.toFixed(4));
+          return res.status(200).send(balance.toFixed(2));
         }
 
         return res.status(200).json({ 
-          balance: parseFloat(balance.toFixed(4)), 
-          formatted: `$${balance.toFixed(4)}` 
+          balance: parseFloat(balance.toFixed(2)), 
+          formatted: `$${balance.toFixed(2)}` 
         });
       } catch (err) {
         if (isCommandLine) {
