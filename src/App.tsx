@@ -559,7 +559,7 @@ export default function App() {
       <footer className="max-w-6xl mx-auto px-6 mt-12 bg-white border border-slate-200 rounded-xl py-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-6">
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="font-bold text-slate-800 uppercase">Tarifa Actual:</span> $0.10 / Hora
+            <span className="font-bold text-slate-800 uppercase">Tarifa Actual:</span> ${(state.hourlyRate ?? 0.10).toFixed(2)} USD / Hora
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <span className="font-bold text-slate-800 uppercase">Saldo Estimado:</span>{' '}
