@@ -88,53 +88,25 @@ export default function App() {
           const RATE_PER_MS = 0.10 / (3600 * 1000); // $0.10 per hour
           const offlineCost = simDeltaMs * RATE_PER_MS;
 
-          if (offlineCost >= parsed.balance) {
-            const finalAffordableMs = parsed.balance / RATE_PER_MS;
-            const updatedHistory = parsed.history.map((s) => {
-              if (s.id === parsed.currentSessionId) {
-                return {
-                  ...s,
-                  endTime: s.startTime + s.elapsedTimeMs + finalAffordableMs,
-                  elapsedTimeMs: s.elapsedTimeMs + finalAffordableMs,
-                  cost: s.cost + parsed.balance,
-                  isActive: false,
-                };
-              }
-              return s;
-            });
+          const updatedHistory = parsed.history.map((s) => {
+            if (s.id === parsed.currentSessionId) {
+              return {
+                ...s,
+                elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
+                cost: s.cost + offlineCost,
+              };
+            }
+            return s;
+          });
 
-            const finalState = {
-              ...parsed,
-              balance: 0,
-              isActive: false,
-              currentSessionId: null,
-              history: updatedHistory,
-              totalSpent: parsed.totalSpent + parsed.balance,
-            };
-            setState(finalState);
-            setShowEmptyAlert(true);
-            saveParkingStateToDb(finalState);
-          } else {
-            const updatedHistory = parsed.history.map((s) => {
-              if (s.id === parsed.currentSessionId) {
-                return {
-                  ...s,
-                  elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
-                  cost: s.cost + offlineCost,
-                };
-              }
-              return s;
-            });
-
-            const finalState = {
-              ...parsed,
-              balance: parsed.balance - offlineCost,
-              history: updatedHistory,
-              totalSpent: parsed.totalSpent + offlineCost,
-            };
-            setState(finalState);
-            saveParkingStateToDb(finalState);
-          }
+          const finalState = {
+            ...parsed,
+            balance: parsed.balance - offlineCost,
+            history: updatedHistory,
+            totalSpent: parsed.totalSpent + offlineCost,
+          };
+          setState(finalState);
+          saveParkingStateToDb(finalState);
         } else {
           setState(parsed);
         }
@@ -232,39 +204,6 @@ export default function App() {
       setState((prev) => {
         if (!prev.isActive || !prev.currentSessionId) return prev;
 
-        // Auto-cutoff if budget exhausted during this tick
-        if (tickCost >= prev.balance) {
-          const finalAffordableMs = prev.balance / RATE_PER_MS;
-          const finalCost = prev.balance;
-
-          const updatedHistory = prev.history.map((s) => {
-            if (s.id === prev.currentSessionId) {
-              return {
-                ...s,
-                endTime: s.startTime + s.elapsedTimeMs + finalAffordableMs,
-                elapsedTimeMs: s.elapsedTimeMs + finalAffordableMs,
-                cost: s.cost + finalCost,
-                isActive: false,
-              };
-            }
-            return s;
-          });
-
-          setShowEmptyAlert(true);
-
-          const newState = {
-            ...prev,
-            balance: 0,
-            isActive: false,
-            currentSessionId: null,
-            history: updatedHistory,
-            totalSpent: prev.totalSpent + finalCost,
-          };
-
-          saveParkingStateToDb(newState);
-          return newState;
-        }
-
         const updatedHistory = prev.history.map((s) => {
           if (s.id === prev.currentSessionId) {
             return {
@@ -278,7 +217,7 @@ export default function App() {
 
         const newState = {
           ...prev,
-          balance: Math.max(0, prev.balance - tickCost),
+          balance: prev.balance - tickCost,
           history: updatedHistory,
           totalSpent: prev.totalSpent + tickCost,
         };
@@ -403,54 +342,23 @@ export default function App() {
 
     if (!state.isActive || !state.currentSessionId) return;
 
-    let newState: ParkingState;
+    const updatedHistory = state.history.map((s) => {
+      if (s.id === state.currentSessionId) {
+        return {
+          ...s,
+          elapsedTimeMs: s.elapsedTimeMs + skipMs,
+          cost: s.cost + skipCost,
+        };
+      }
+      return s;
+    });
 
-    if (skipCost >= state.balance) {
-      const finalAffordableMs = state.balance / RATE_PER_MS;
-      const finalCost = state.balance;
-
-      const updatedHistory = state.history.map((s) => {
-        if (s.id === state.currentSessionId) {
-          return {
-            ...s,
-            endTime: s.startTime + s.elapsedTimeMs + finalAffordableMs,
-            elapsedTimeMs: s.elapsedTimeMs + finalAffordableMs,
-            cost: s.cost + finalCost,
-            isActive: false,
-          };
-        }
-        return s;
-      });
-
-      setShowEmptyAlert(true);
-
-      newState = {
-        ...state,
-        balance: 0,
-        isActive: false,
-        currentSessionId: null,
-        history: updatedHistory,
-        totalSpent: state.totalSpent + finalCost,
-      };
-    } else {
-      const updatedHistory = state.history.map((s) => {
-        if (s.id === state.currentSessionId) {
-          return {
-            ...s,
-            elapsedTimeMs: s.elapsedTimeMs + skipMs,
-            cost: s.cost + skipCost,
-          };
-        }
-        return s;
-      });
-
-      newState = {
-        ...state,
-        balance: state.balance - skipCost,
-        history: updatedHistory,
-        totalSpent: state.totalSpent + skipCost,
-      };
-    }
+    const newState = {
+      ...state,
+      balance: state.balance - skipCost,
+      history: updatedHistory,
+      totalSpent: state.totalSpent + skipCost,
+    };
 
     updateAndSaveState(newState);
   };
@@ -586,7 +494,10 @@ export default function App() {
             <span className="font-bold text-slate-800 uppercase">Tarifa Actual:</span> $0.10 / Hora
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="font-bold text-slate-800 uppercase">Saldo Estimado:</span> ${state.balance.toFixed(2)} USD
+            <span className="font-bold text-slate-800 uppercase">Saldo Estimado:</span>{' '}
+            <span className={state.balance < 0 ? "text-rose-600 font-bold" : ""}>
+              {state.balance < 0 ? `-$${Math.abs(state.balance).toFixed(2)}` : `$${state.balance.toFixed(2)}`} USD
+            </span>
           </div>
         </div>
         <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">

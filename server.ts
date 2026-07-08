@@ -122,52 +122,24 @@ async function startServer() {
         const RATE_PER_MS = 0.10 / (3600 * 1000); // $0.10 por hora
         const offlineCost = simDeltaMs * RATE_PER_MS;
 
-        let finalState = { ...parsedState };
+        const updatedHistory = (parsedState.history || []).map((s: any) => {
+          if (s.id === parsedState.currentSessionId) {
+            return {
+              ...s,
+              elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
+              cost: s.cost + offlineCost,
+            };
+          }
+          return s;
+        });
 
-        if (offlineCost >= parsedState.balance) {
-          const finalAffordableMs = parsedState.balance / RATE_PER_MS;
-          const updatedHistory = (parsedState.history || []).map((s: any) => {
-            if (s.id === parsedState.currentSessionId) {
-              return {
-                ...s,
-                endTime: s.startTime + s.elapsedTimeMs + finalAffordableMs,
-                elapsedTimeMs: s.elapsedTimeMs + finalAffordableMs,
-                cost: s.cost + parsedState.balance,
-                isActive: false,
-              };
-            }
-            return s;
-          });
-
-          finalState = {
-            ...parsedState,
-            balance: 0,
-            isActive: false,
-            currentSessionId: null,
-            history: updatedHistory,
-            totalSpent: (parsedState.totalSpent || 0) + parsedState.balance,
-            lastSavedTime: Date.now(),
-          };
-        } else {
-          const updatedHistory = (parsedState.history || []).map((s: any) => {
-            if (s.id === parsedState.currentSessionId) {
-              return {
-                ...s,
-                elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
-                cost: s.cost + offlineCost,
-              };
-            }
-            return s;
-          });
-
-          finalState = {
-            ...parsedState,
-            balance: parsedState.balance - offlineCost,
-            history: updatedHistory,
-            totalSpent: (parsedState.totalSpent || 0) + offlineCost,
-            lastSavedTime: Date.now(),
-          };
-        }
+        let finalState = {
+          ...parsedState,
+          balance: parsedState.balance - offlineCost,
+          history: updatedHistory,
+          totalSpent: (parsedState.totalSpent || 0) + offlineCost,
+          lastSavedTime: Date.now(),
+        };
 
         parsedState = finalState;
 
@@ -219,7 +191,7 @@ async function startServer() {
       const balance = await getAndUpdateBalance();
       res.status(200).json({ 
         balance: parseFloat(balance.toFixed(2)), 
-        formatted: `$${balance.toFixed(2)}`,
+        formatted: balance < 0 ? `-$${Math.abs(balance).toFixed(2)}` : `$${balance.toFixed(2)}`,
         status: "success",
         timestamp: Date.now()
       });
@@ -317,7 +289,7 @@ async function startServer() {
           const sessionCost = simDeltaMs * RATE_PER_MS;
 
           // Descontar costo del saldo
-          parsedState.balance = Math.max(0, (parsedState.balance || 0) - sessionCost);
+          parsedState.balance = (parsedState.balance || 0) - sessionCost;
 
           parsedState.history = (parsedState.history || []).map((s: any) => {
             if (s.id === parsedState.currentSessionId) {
@@ -491,7 +463,7 @@ async function startServer() {
 
         return res.status(200).json({ 
           balance: parseFloat(balance.toFixed(2)), 
-          formatted: `$${balance.toFixed(2)}` 
+          formatted: balance < 0 ? `-$${Math.abs(balance).toFixed(2)}` : `$${balance.toFixed(2)}`
         });
       } catch (err) {
         if (isCommandLine) {

@@ -101,8 +101,8 @@ export default function WalletCard({ balance, onRecharge, onResetBalance }: Wall
             )}
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-4xl font-black text-slate-900 tracking-tight font-sans" id="wallet-balance-display">
-              ${balance.toFixed(4)}
+            <span className={`text-4xl font-black tracking-tight font-sans ${balance < 0 ? "text-rose-600" : "text-slate-900"}`} id="wallet-balance-display">
+              {balance < 0 ? `-$${Math.abs(balance).toFixed(2)}` : `$${balance.toFixed(2)}`}
             </span>
             <span className="text-xs text-slate-400 font-bold uppercase">USD</span>
           </div>
@@ -114,6 +114,8 @@ export default function WalletCard({ balance, onRecharge, onResetBalance }: Wall
                 <>
                   Equivale a: <strong className="text-slate-900 font-bold">{formatRemainingTime()}</strong> de parqueo continuo
                 </>
+              ) : balance < 0 ? (
+                <span className="text-rose-600 font-bold">Tienes una deuda activa de: -${Math.abs(balance).toFixed(2)} USD</span>
               ) : (
                 <span className="text-rose-500 font-bold">Recarga saldo para poder parquear</span>
               )}
@@ -140,7 +142,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance }: Wall
             </motion.div>
           )}
 
-          {balance <= 0 && (
+          {balance === 0 && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -151,6 +153,21 @@ export default function WalletCard({ balance, onRecharge, onResetBalance }: Wall
               <div>
                 <p className="font-semibold">Sin Saldo</p>
                 <p>Tu saldo está en $0.00. No se pueden iniciar nuevas sesiones de parqueo.</p>
+              </div>
+            </motion.div>
+          )}
+
+          {balance < 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="bg-rose-100 border border-rose-300 text-rose-900 rounded-lg p-3 text-xs mb-4 flex items-start gap-2 animate-pulse"
+            >
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold uppercase tracking-wider">Deuda Activa / Saldo Negativo</p>
+                <p className="mt-0.5 font-medium">Tienes una deuda acumulada de <strong className="font-mono text-rose-700">-${Math.abs(balance).toFixed(2)} USD</strong>. Realiza una recarga para saldarla.</p>
               </div>
             </motion.div>
           )}
