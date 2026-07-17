@@ -89,6 +89,7 @@ async function startServer() {
         totalDeposits: 5.0,
         totalSpent: 0,
         speedMultiplier: 1,
+        hourlyRate: 0.10,
       };
     }
 
@@ -119,7 +120,8 @@ async function startServer() {
       if (elapsedRealMs > 0) {
         const speed = parsedState.speedMultiplier || 1;
         const simDeltaMs = elapsedRealMs * speed;
-        const RATE_PER_MS = 0.10 / (3600 * 1000); // $0.10 por hora
+        const hourlyRate = parsedState.hourlyRate ?? 0.10;
+        const RATE_PER_MS = hourlyRate / (3600 * 1000);
         const offlineCost = simDeltaMs * RATE_PER_MS;
 
         const updatedHistory = (parsedState.history || []).map((s: any) => {
@@ -253,6 +255,7 @@ async function startServer() {
           totalDeposits: 0,
           totalSpent: 0,
           speedMultiplier: 1,
+          hourlyRate: 0.10,
         };
       }
 
@@ -285,7 +288,8 @@ async function startServer() {
           const elapsedRealMs = now - lastSavedMs;
           const speed = parsedState.speedMultiplier || 1;
           const simDeltaMs = elapsedRealMs > 0 ? elapsedRealMs * speed : 0;
-          const RATE_PER_MS = 0.10 / (3600 * 1000);
+          const hourlyRate = parsedState.hourlyRate ?? 0.10;
+          const RATE_PER_MS = hourlyRate / (3600 * 1000);
           const sessionCost = simDeltaMs * RATE_PER_MS;
 
           // Descontar costo del saldo
@@ -351,7 +355,8 @@ async function startServer() {
         const elapsedRealMs = now - lastSavedMs;
         const speed = parsedState.speedMultiplier || 1;
         const simDeltaMs = elapsedRealMs > 0 ? elapsedRealMs * speed : 0;
-        const RATE_PER_MS = 0.10 / (3600 * 1000);
+        const hourlyRate = parsedState.hourlyRate ?? 0.10;
+        const RATE_PER_MS = hourlyRate / (3600 * 1000);
         const sessionCost = simDeltaMs * RATE_PER_MS;
 
         parsedState.history = (parsedState.history || []).map((s: any) => {
