@@ -141,6 +141,7 @@ export default function App() {
         const hasStructuralDiff = 
           remoteState.isActive !== current.isActive || 
           remoteState.currentSessionId !== current.currentSessionId ||
+          remoteState.hourlyRate !== current.hourlyRate ||
           Math.abs(remoteState.balance - current.balance) > 0.01;
 
         if (hasStructuralDiff || remoteSavedTime > currentSavedTime + 1000) {
@@ -207,12 +208,15 @@ export default function App() {
 
       lastUpdatedRef.current = now;
 
-      const simDeltaMs = realDeltaMs * state.speedMultiplier;
-      const RATE_PER_MS = (state.hourlyRate ?? 0.10) / (3600 * 1000);
-      const tickCost = simDeltaMs * RATE_PER_MS;
-
       setState((prev) => {
         if (!prev.isActive || !prev.currentSessionId) return prev;
+
+        const currentHourlyRate = prev.hourlyRate ?? 0.10;
+        const currentSpeedMultiplier = prev.speedMultiplier ?? 1;
+
+        const simDeltaMs = realDeltaMs * currentSpeedMultiplier;
+        const RATE_PER_MS = currentHourlyRate / (3600 * 1000);
+        const tickCost = simDeltaMs * RATE_PER_MS;
 
         const updatedHistory = prev.history.map((s) => {
           if (s.id === prev.currentSessionId) {
@@ -244,7 +248,7 @@ export default function App() {
     }, 100);
 
     return () => clearInterval(timerId);
-  }, [state.isActive, state.currentSessionId, state.speedMultiplier]);
+  }, [state.isActive, state.currentSessionId, state.speedMultiplier, state.hourlyRate]);
 
   // Actions
   const handleStart = () => {
@@ -385,22 +389,14 @@ export default function App() {
       hourlyRate: state.hourlyRate ?? 0.10,
     };
     updateAndSaveState(newState);
-    localStorage.removeItem("parking_manager_state");
   };
 
   const handleUpdateHourlyRate = (newRate: number) => {
     const newState = {
-      balance: 0.0,
-      isActive: false,
-      currentSessionId: null,
-      history: [],
-      totalDeposits: 0.0,
-      totalSpent: 0,
-      speedMultiplier: 1,
+      ...state,
       hourlyRate: newRate,
     };
     updateAndSaveState(newState);
-    localStorage.removeItem("parking_manager_state");
   };
 
   // Get current active session details
@@ -540,6 +536,7 @@ export default function App() {
                 speedMultiplier={state.speedMultiplier}
                 onSetSpeed={handleSetSpeed}
                 onTimeSkip={handleTimeSkip}
+                hourlyRate={state.hourlyRate ?? 0.10}
               />
             </motion.div>
           )}

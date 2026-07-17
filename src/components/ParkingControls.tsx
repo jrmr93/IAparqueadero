@@ -249,7 +249,7 @@ export default function ParkingControls({
                     ¿Estás seguro de que deseas registrar una entrada? Se iniciará el cobro por tiempo transcurrido en el parqueo.
                   </p>
                   <div className="text-xs text-blue-700 bg-blue-50/70 border border-blue-100 p-3 rounded-xl leading-relaxed mt-2">
-                    <strong>Tarifa activa:</strong> $0.10 USD por hora ($0.00167 USD por minuto). El costo se debitará automáticamente de tu saldo disponible.
+                    <strong>Tarifa activa:</strong> ${hourlyRate.toFixed(2)} USD por hora (${(hourlyRate / 60).toFixed(5)} USD por minuto). El costo se debitará automáticamente de tu saldo disponible.
                   </div>
                 </div>
               </div>
