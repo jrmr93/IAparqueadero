@@ -10,6 +10,7 @@ export interface ParkingSession {
   elapsedTimeMs: number; // total active time in milliseconds
   cost: number; // accumulated cost in USD
   isActive: boolean;
+  startBalance?: number; // user balance when the session started
 }
 
 export interface ParkingState {

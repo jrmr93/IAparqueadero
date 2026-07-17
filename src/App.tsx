@@ -272,6 +272,7 @@ export default function App() {
       elapsedTimeMs: 0,
       cost: 0,
       isActive: true,
+      startBalance: state.balance,
     };
 
     lastUpdatedRef.current = now;

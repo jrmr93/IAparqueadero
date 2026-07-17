@@ -150,6 +150,7 @@ export default function ParkingHistory({
                   <th className="p-3">Entrada (Fecha y Hora)</th>
                   <th className="p-3">Salida (Fecha y Hora)</th>
                   <th className="p-3">Duración</th>
+                  <th className="p-3 text-right">Saldo Inicial</th>
                   <th className="p-3 text-right pr-4">Costo Cobrado</th>
                 </tr>
               </thead>
@@ -184,6 +185,9 @@ export default function ParkingHistory({
                         )}
                       </td>
                       <td className="p-3 font-mono">{formatDuration(session.elapsedTimeMs)}</td>
+                      <td className="p-3 text-right font-mono text-slate-600">
+                        {session.startBalance !== undefined ? `$${session.startBalance.toFixed(2)}` : "--"}
+                      </td>
                       <td className="p-3 text-right pr-4 font-bold font-mono text-slate-900">
                         ${session.cost.toFixed(4)}
                       </td>
@@ -220,7 +224,10 @@ export default function ParkingHistory({
                         <p className="text-slate-700 font-mono font-bold mt-0.5">{formatDuration(session.elapsedTimeMs)}</p>
                       </div>
                       <div>
-                        {/* Placeholder para balancear */}
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Saldo Inicial</p>
+                        <p className="text-slate-700 font-mono font-bold mt-0.5">
+                          {session.startBalance !== undefined ? `$${session.startBalance.toFixed(2)}` : "--"}
+                        </p>
                       </div>
                     </div>
 

@@ -394,7 +394,8 @@ async function startServer() {
           endTime: null,
           elapsedTimeMs: 0,
           cost: 0,
-          isActive: true
+          isActive: true,
+          startBalance: newBalance
         };
 
         parsedState.isActive = true;
