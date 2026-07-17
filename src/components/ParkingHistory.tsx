@@ -38,7 +38,8 @@ export default function ParkingHistory({
     return `${seconds}s`;
   };
 
-  const formatDate = (timestamp: number) => {
+  const formatDate = (timestamp: number | null) => {
+    if (!timestamp) return "--";
     const d = new Date(timestamp);
     return d.toLocaleDateString("es-ES", {
       day: "2-digit",
@@ -146,9 +147,8 @@ export default function ParkingHistory({
               <thead>
                 <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                   <th className="p-3 pl-4">#</th>
-                  <th className="p-3">Fecha</th>
-                  <th className="p-3">Entrada</th>
-                  <th className="p-3">Salida</th>
+                  <th className="p-3">Entrada (Fecha y Hora)</th>
+                  <th className="p-3">Salida (Fecha y Hora)</th>
                   <th className="p-3">Duración</th>
                   <th className="p-3 text-right pr-4">Costo Cobrado</th>
                 </tr>
@@ -167,17 +167,20 @@ export default function ParkingHistory({
                       <td className="p-3 pl-4 font-mono text-slate-400">
                         {history.length - index}
                       </td>
-                      <td className="p-3 text-slate-600 font-bold">
-                        {formatDate(session.startTime)}
+                      <td className="p-3">
+                        <div className="text-slate-700 font-bold">{formatDate(session.startTime)}</div>
+                        <div className="text-[10px] text-slate-500 font-mono mt-0.5">{formatTime(session.startTime)}</div>
                       </td>
-                      <td className="p-3 font-mono">{formatTime(session.startTime)}</td>
-                      <td className="p-3 font-mono">
+                      <td className="p-3">
                         {session.isActive ? (
                           <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-sm font-bold text-[10px] uppercase tracking-wide animate-pulse">
                             Estacionado
                           </span>
                         ) : (
-                          formatTime(session.endTime)
+                          <>
+                            <div className="text-slate-700 font-bold">{formatDate(session.endTime)}</div>
+                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">{formatTime(session.endTime)}</div>
+                          </>
                         )}
                       </td>
                       <td className="p-3 font-mono">{formatDuration(session.elapsedTimeMs)}</td>
@@ -213,29 +216,32 @@ export default function ParkingHistory({
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Fecha</p>
-                        <p className="text-slate-700 font-semibold mt-0.5">{formatDate(session.startTime)}</p>
-                      </div>
-                      <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Duración</p>
                         <p className="text-slate-700 font-mono font-bold mt-0.5">{formatDuration(session.elapsedTimeMs)}</p>
+                      </div>
+                      <div>
+                        {/* Placeholder para balancear */}
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-xs pt-2.5 border-t border-dashed border-slate-100">
                       <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Hora Entrada</p>
-                        <p className="text-slate-600 font-mono mt-0.5">{formatTime(session.startTime)}</p>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Entrada (Fecha y Hora)</p>
+                        <p className="text-slate-700 font-bold mt-0.5">{formatDate(session.startTime)}</p>
+                        <p className="text-slate-500 font-mono text-[11px] mt-0.5">{formatTime(session.startTime)}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Hora Salida</p>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Salida (Fecha y Hora)</p>
                         <div className="mt-0.5">
                           {session.isActive ? (
                             <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded font-bold text-[9px] uppercase tracking-wide animate-pulse">
                               Estacionado
                             </span>
                           ) : (
-                            <span className="text-slate-600 font-mono">{formatTime(session.endTime)}</span>
+                            <>
+                              <p className="text-slate-700 font-bold">{formatDate(session.endTime)}</p>
+                              <p className="text-slate-500 font-mono text-[11px] mt-0.5">{formatTime(session.endTime)}</p>
+                            </>
                           )}
                         </div>
                       </div>
