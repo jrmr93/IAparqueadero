@@ -355,14 +355,14 @@ async function startServer() {
       }
 
       const newBalance = parseFloat(String(saldoParam));
-      if (isNaN(newBalance) || newBalance < 0) {
+      if (isNaN(newBalance)) {
         return res.status(400).json({
           status: "error",
-          message: "El saldo proporcionado debe ser un número válido mayor o igual a 0, o enviar 'new' para cancelar la sesión."
+          message: "El saldo proporcionado debe ser un número válido, o enviar 'new' para cancelar la sesión."
         });
       }
 
-      // 2. Si hay una sesión activa, finalizarla primero calculando la diferencia acumulada
+      // 2. Si hay una sesión activa, actualizar su costo acumulado hasta ahora sin cerrarla
       if (parsedState.isActive && parsedState.currentSessionId && parsedState.lastSavedTime) {
         const lastSavedMs = getMsFromTimestamp(parsedState.lastSavedTime);
         const elapsedRealMs = now - lastSavedMs;
@@ -381,10 +381,9 @@ async function startServer() {
 
             return {
               ...s,
-              endTime: now,
               elapsedTimeMs: newElapsedTime,
               cost: newCost,
-              isActive: false
+              isActive: true
             };
           }
           return s;
@@ -400,8 +399,8 @@ async function startServer() {
       }
       parsedState.balance = newBalance;
 
-      // 4. Iniciar automáticamente la nueva sesión de parqueo si el saldo es mayor a 0
-      if (newBalance > 0) {
+      // 4. Iniciar automáticamente una nueva sesión de parqueo si NO hay una sesión activa y el saldo es mayor a 0
+      if (!parsedState.isActive && newBalance > 0) {
         const sessionId = `session-${now}`;
         const newSession = {
           id: sessionId,
@@ -416,9 +415,6 @@ async function startServer() {
         parsedState.isActive = true;
         parsedState.currentSessionId = sessionId;
         parsedState.history = [newSession, ...(parsedState.history || [])];
-      } else {
-        parsedState.isActive = false;
-        parsedState.currentSessionId = null;
       }
 
       parsedState.lastSavedTime = now;
