@@ -15,8 +15,8 @@ interface ParkingControlsProps {
   formattedTime: string;
   currentCost: number;
   startTime: number | null;
-  hourlyRate: number;
-  onUpdateHourlyRate: (rate: number) => void;
+  halfHourRate: number;
+  onUpdateHalfHourRate: (rate: number) => void;
 }
 
 export default function ParkingControls({
@@ -27,27 +27,27 @@ export default function ParkingControls({
   formattedTime,
   currentCost,
   startTime,
-  hourlyRate,
-  onUpdateHourlyRate,
+  halfHourRate,
+  onUpdateHalfHourRate,
 }: ParkingControlsProps) {
   
   const [showConfirmStart, setShowConfirmStart] = useState(false);
   const [showConfirmPause, setShowConfirmPause] = useState(false);
   const [isEditingRate, setIsEditingRate] = useState(false);
-  const [tempRate, setTempRate] = useState(hourlyRate.toString());
+  const [tempRate, setTempRate] = useState(halfHourRate.toString());
   const hasNoBalance = balance <= 0;
 
-  // Synchronize tempRate if hourlyRate changes externally
+  // Synchronize tempRate if halfHourRate changes externally
   React.useEffect(() => {
-    setTempRate(hourlyRate.toString());
-  }, [hourlyRate]);
+    setTempRate(halfHourRate.toString());
+  }, [halfHourRate]);
 
   const parsedRate = parseFloat(tempRate);
   const isValidRate = !isNaN(parsedRate) && parsedRate > 0 && parsedRate <= 100;
 
   const handleSaveRate = () => {
     if (isValidRate) {
-      onUpdateHourlyRate(parsedRate);
+      onUpdateHalfHourRate(parsedRate);
       setIsEditingRate(false);
     }
   };
@@ -57,7 +57,7 @@ export default function ParkingControls({
       handleSaveRate();
     } else if (e.key === "Escape") {
       setIsEditingRate(false);
-      setTempRate(hourlyRate.toString());
+      setTempRate(halfHourRate.toString());
     }
   };
 
@@ -82,13 +82,13 @@ export default function ParkingControls({
             </div>
             <h2 className="text-sm font-bold text-slate-700 tracking-wider uppercase">Acciones y Control</h2>
           </div>
-          <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-sm font-bold uppercase tracking-tighter">Tarifa Fija</span>
+          <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-sm font-bold uppercase tracking-tighter">Tarifa Intervalo</span>
         </div>
 
         {/* Informative Rate card */}
         <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 mb-5 text-xs text-slate-600 space-y-2">
           <div className="flex justify-between items-center pb-2 border-b border-slate-200/40">
-            <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Tarifa por hora:</span>
+            <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Tarifa por 30 min:</span>
             {isEditingRate ? (
               <div className="flex items-center gap-1" id="hourly-rate-edit-wrapper">
                 <span className="text-slate-400 font-bold font-mono">$</span>
@@ -111,7 +111,7 @@ export default function ParkingControls({
                   onClick={handleSaveRate}
                   disabled={!isValidRate}
                   className={`p-1 rounded cursor-pointer transition-colors ${isValidRate ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" : "bg-slate-100 text-slate-300 cursor-not-allowed"}`}
-                  title="Guardar y reiniciar aplicación"
+                  title="Guardar"
                 >
                   <Check className="w-3.5 h-3.5" />
                 </button>
@@ -120,7 +120,7 @@ export default function ParkingControls({
                   id="btn-cancel-rate"
                   onClick={() => {
                     setIsEditingRate(false);
-                    setTempRate(hourlyRate.toString());
+                    setTempRate(halfHourRate.toString());
                   }}
                   className="p-1 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded cursor-pointer transition-colors"
                   title="Cancelar"
@@ -130,12 +130,12 @@ export default function ParkingControls({
               </div>
             ) : (
               <div className="flex items-center gap-1">
-                <span className="font-bold text-slate-800">${hourlyRate.toFixed(2)} USD / hora</span>
+                <span className="font-bold text-slate-800">${halfHourRate.toFixed(2)} USD / 30m</span>
                 <button
                   type="button"
                   id="btn-edit-rate"
                   onClick={() => {
-                    setTempRate(hourlyRate.toString());
+                    setTempRate(halfHourRate.toString());
                     setIsEditingRate(true);
                   }}
                   className="p-1 text-slate-400 hover:text-slate-600 rounded hover:bg-slate-100 transition-colors cursor-pointer"
@@ -147,12 +147,12 @@ export default function ParkingControls({
             )}
           </div>
           <div className="flex justify-between items-center pb-2 border-b border-slate-200/40">
-            <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Tarifa por minuto:</span>
-            <span className="font-mono text-slate-700 font-bold">${(hourlyRate / 60).toFixed(5)} USD / min</span>
+            <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Cálculo de Cobro:</span>
+            <span className="font-mono text-slate-700 font-bold">Por bloques de 30 min enteros</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Pausa permitida:</span>
-            <span className="text-blue-600 font-bold">Sí (Sin costos mientras está fuera)</span>
+            <span className="text-blue-600 font-bold">Sí (Conserva saldo descontado)</span>
           </div>
         </div>
 
@@ -255,7 +255,7 @@ export default function ParkingControls({
                     ¿Estás seguro de que deseas registrar una entrada? Se iniciará el cobro por tiempo transcurrido en el parqueo.
                   </p>
                   <div className="text-xs text-blue-700 bg-blue-50/70 border border-blue-100 p-3 rounded-xl leading-relaxed mt-2">
-                    <strong>Tarifa activa:</strong> ${hourlyRate.toFixed(2)} USD por hora (${(hourlyRate / 60).toFixed(5)} USD por minuto). El costo se debitará automáticamente de tu saldo disponible.
+                    <strong>Tarifa activa:</strong> ${halfHourRate.toFixed(2)} USD por cada bloque de 30 minutos. El costo se debitará de forma anticipada/acumulada de tu saldo disponible.
                   </div>
                 </div>
               </div>

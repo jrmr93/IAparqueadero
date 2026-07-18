@@ -11,15 +11,18 @@ interface WalletCardProps {
   balance: number;
   onRecharge: (amount: number) => void;
   onResetBalance: () => void;
+  halfHourRate?: number;
   hourlyRate?: number;
 }
 
-export default function WalletCard({ balance, onRecharge, onResetBalance, hourlyRate = 0.10 }: WalletCardProps) {
+export default function WalletCard({ balance, onRecharge, onResetBalance, halfHourRate, hourlyRate = 0.10 }: WalletCardProps) {
   const [customAmount, setCustomAmount] = useState<string>("");
   const [notification, setNotification] = useState<string | null>(null);
   const [showConfirmReset, setShowConfirmReset] = useState<boolean>(false);
   const [showConfirmRecharge, setShowConfirmRecharge] = useState<boolean>(false);
   const [amountToConfirm, setAmountToConfirm] = useState<number>(0);
+
+  const effectiveHalfHourRate = halfHourRate ?? hourlyRate;
 
   const handleCustomRecharge = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,9 +54,8 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, hourly
   };
 
   // Calculate remaining parking time
-  // Rate: custom hourly rate
-  const ratePerHour = hourlyRate;
-  const totalHoursLeft = balance / ratePerHour;
+  // Rate: custom 30-minute rate (double rate for hourly equivalent)
+  const totalHoursLeft = balance / (effectiveHalfHourRate * 2);
   const days = Math.floor(totalHoursLeft / 24);
   const hours = Math.floor(totalHoursLeft % 24);
   const minutes = Math.floor((totalHoursLeft * 60) % 60);
@@ -67,7 +69,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, hourly
     return parts.join(" ");
   };
 
-  const isLowBalance = balance > 0 && balance < hourlyRate; // less than 1 hour left
+  const isLowBalance = balance > 0 && balance < effectiveHalfHourRate; // less than 30 mins left
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between h-full relative overflow-hidden" id="wallet-card-container">
@@ -82,7 +84,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, hourly
             </div>
             <h2 className="text-sm font-bold text-slate-700 tracking-wider uppercase">Mi Monedero Digital</h2>
           </div>
-          <span className="text-xs font-mono text-slate-400">Tarifa: ${hourlyRate.toFixed(2)}/h</span>
+          <span className="text-xs font-mono text-slate-400">Tarifa: ${effectiveHalfHourRate.toFixed(2)}/30m</span>
         </div>
 
         {/* Balance Display */}
@@ -138,7 +140,7 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, hourly
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">¡Saldo Bajo!</p>
-                <p>Te queda menos de 1 hora de estacionamiento disponible. Recarga pronto para evitar pausas.</p>
+                <p>Te queda menos de 30 minutos de estacionamiento disponible. Recarga pronto para evitar pausas.</p>
               </div>
             </motion.div>
           )}

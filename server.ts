@@ -93,7 +93,7 @@ async function startServer() {
         totalDeposits: 5.0,
         totalSpent: 0,
         speedMultiplier: 1,
-        hourlyRate: 0.10,
+        halfHourRate: 0.10,
       };
     }
 
@@ -124,16 +124,21 @@ async function startServer() {
       if (elapsedRealMs > 0) {
         const speed = parsedState.speedMultiplier || 1;
         const simDeltaMs = elapsedRealMs * speed;
-        const hourlyRate = parsedState.hourlyRate ?? 0.10;
-        const RATE_PER_MS = hourlyRate / (3600 * 1000);
-        const offlineCost = simDeltaMs * RATE_PER_MS;
+        const halfHourRate = parsedState.halfHourRate ?? parsedState.hourlyRate ?? 0.10;
+        
+        let offlineCost = 0;
 
         const updatedHistory = (parsedState.history || []).map((s: any) => {
           if (s.id === parsedState.currentSessionId) {
+            const previousCost = s.cost || 0;
+            const newElapsedTime = s.elapsedTimeMs + simDeltaMs;
+            const newCost = newElapsedTime <= 0 ? 0 : Math.ceil(newElapsedTime / (30 * 60 * 1000)) * halfHourRate;
+            offlineCost = newCost - previousCost;
+
             return {
               ...s,
-              elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
-              cost: s.cost + offlineCost,
+              elapsedTimeMs: newElapsedTime,
+              cost: newCost,
             };
           }
           return s;
@@ -259,7 +264,7 @@ async function startServer() {
           totalDeposits: 0,
           totalSpent: 0,
           speedMultiplier: 1,
-          hourlyRate: 0.10,
+          halfHourRate: 0.10,
         };
       }
 
@@ -292,26 +297,30 @@ async function startServer() {
           const elapsedRealMs = now - lastSavedMs;
           const speed = parsedState.speedMultiplier || 1;
           const simDeltaMs = elapsedRealMs > 0 ? elapsedRealMs * speed : 0;
-          const hourlyRate = parsedState.hourlyRate ?? 0.10;
-          const RATE_PER_MS = hourlyRate / (3600 * 1000);
-          const sessionCost = simDeltaMs * RATE_PER_MS;
-
-          // Descontar costo del saldo
-          parsedState.balance = (parsedState.balance || 0) - sessionCost;
+          const halfHourRate = parsedState.halfHourRate ?? parsedState.hourlyRate ?? 0.10;
+          
+          let sessionCostDiff = 0;
 
           parsedState.history = (parsedState.history || []).map((s: any) => {
             if (s.id === parsedState.currentSessionId) {
+              const previousCost = s.cost || 0;
+              const newElapsedTime = s.elapsedTimeMs + simDeltaMs;
+              const newCost = newElapsedTime <= 0 ? 0 : Math.ceil(newElapsedTime / (30 * 60 * 1000)) * halfHourRate;
+              sessionCostDiff = newCost - previousCost;
+
               return {
                 ...s,
                 endTime: now,
-                elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
-                cost: s.cost + sessionCost,
+                elapsedTimeMs: newElapsedTime,
+                cost: newCost,
                 isActive: false
               };
             }
             return s;
           });
-          parsedState.totalSpent = (parsedState.totalSpent || 0) + sessionCost;
+
+          parsedState.balance = (parsedState.balance || 0) - sessionCostDiff;
+          parsedState.totalSpent = (parsedState.totalSpent || 0) + sessionCostDiff;
           parsedState.isActive = false;
           parsedState.currentSessionId = null;
         }
@@ -359,23 +368,29 @@ async function startServer() {
         const elapsedRealMs = now - lastSavedMs;
         const speed = parsedState.speedMultiplier || 1;
         const simDeltaMs = elapsedRealMs > 0 ? elapsedRealMs * speed : 0;
-        const hourlyRate = parsedState.hourlyRate ?? 0.10;
-        const RATE_PER_MS = hourlyRate / (3600 * 1000);
-        const sessionCost = simDeltaMs * RATE_PER_MS;
+        const halfHourRate = parsedState.halfHourRate ?? parsedState.hourlyRate ?? 0.10;
+        
+        let sessionCostDiff = 0;
 
         parsedState.history = (parsedState.history || []).map((s: any) => {
           if (s.id === parsedState.currentSessionId) {
+            const previousCost = s.cost || 0;
+            const newElapsedTime = s.elapsedTimeMs + simDeltaMs;
+            const newCost = newElapsedTime <= 0 ? 0 : Math.ceil(newElapsedTime / (30 * 60 * 1000)) * halfHourRate;
+            sessionCostDiff = newCost - previousCost;
+
             return {
               ...s,
               endTime: now,
-              elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
-              cost: s.cost + sessionCost,
+              elapsedTimeMs: newElapsedTime,
+              cost: newCost,
               isActive: false
             };
           }
           return s;
         });
-        parsedState.totalSpent = (parsedState.totalSpent || 0) + sessionCost;
+        parsedState.balance = (parsedState.balance || 0) - sessionCostDiff;
+        parsedState.totalSpent = (parsedState.totalSpent || 0) + sessionCostDiff;
       }
 
       // 3. Establecer el nuevo saldo y actualizar los depósitos totales

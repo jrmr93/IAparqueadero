@@ -10,6 +10,7 @@ interface SimulatorPanelProps {
   speedMultiplier: number;
   onSetSpeed: (speed: number) => void;
   onTimeSkip: (minutes: number) => void;
+  halfHourRate?: number;
   hourlyRate?: number;
 }
 
@@ -18,6 +19,7 @@ export default function SimulatorPanel({
   speedMultiplier,
   onSetSpeed,
   onTimeSkip,
+  halfHourRate,
   hourlyRate = 0.10,
 }: SimulatorPanelProps) {
   const speeds = [
@@ -34,6 +36,8 @@ export default function SimulatorPanel({
     { minutes: 60, label: "+1h" },
     { minutes: 300, label: "+5h" },
   ];
+
+  const rate = halfHourRate ?? hourlyRate;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between h-full" id="simulator-panel-container">
@@ -109,7 +113,7 @@ export default function SimulatorPanel({
         <div className="bg-slate-50 rounded-lg p-2.5 text-[11px] text-slate-500 flex items-start gap-1.5 leading-relaxed border border-slate-200/50">
           <ArrowRightLeft className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
           <span>
-            La velocidad multiplica el paso de los milisegundos reales. A 3600x, un segundo en la vida real descuenta el equivalente a una hora de parqueo (${hourlyRate.toFixed(2)} USD).
+            La velocidad multiplica el paso de los milisegundos reales. A 3600x, un segundo en la vida real descuenta el equivalente a una hora de parqueo (${(rate * 2).toFixed(2)} USD).
           </span>
         </div>
       </div>

@@ -23,6 +23,7 @@ const DEFAULT_STATE: ParkingState = {
   totalSpent: 0,
   speedMultiplier: 1,
   hourlyRate: 0.10,
+  halfHourRate: 0.10,
 };
 
 export default function App() {
@@ -99,15 +100,21 @@ export default function App() {
         const elapsedRealMs = Date.now() - lastSavedMs;
         if (elapsedRealMs > 0) {
           const simDeltaMs = elapsedRealMs * parsed.speedMultiplier;
-          const RATE_PER_MS = (parsed.hourlyRate ?? 0.10) / (3600 * 1000); // custom hourly cost
-          const offlineCost = simDeltaMs * RATE_PER_MS;
+          const halfHourRate = parsed.halfHourRate ?? parsed.hourlyRate ?? 0.10;
+          let offlineCostAccumulated = 0;
 
           const updatedHistory = parsed.history.map((s) => {
             if (s.id === parsed.currentSessionId) {
+              const previousCost = s.cost || 0;
+              const newElapsedTime = s.elapsedTimeMs + simDeltaMs;
+              const newCost = newElapsedTime <= 0 ? 0 : Math.ceil(newElapsedTime / (30 * 60 * 1000)) * halfHourRate;
+              const diff = newCost - previousCost;
+              offlineCostAccumulated = diff;
+
               return {
                 ...s,
-                elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
-                cost: s.cost + offlineCost,
+                elapsedTimeMs: newElapsedTime,
+                cost: newCost,
               };
             }
             return s;
@@ -115,9 +122,9 @@ export default function App() {
 
           const finalState = {
             ...parsed,
-            balance: parsed.balance - offlineCost,
+            balance: parsed.balance - offlineCostAccumulated,
             history: updatedHistory,
-            totalSpent: parsed.totalSpent + offlineCost,
+            totalSpent: parsed.totalSpent + offlineCostAccumulated,
           };
           setState(finalState);
           saveParkingStateToDb(finalState);
@@ -221,19 +228,23 @@ export default function App() {
       setState((prev) => {
         if (!prev.isActive || !prev.currentSessionId) return prev;
 
-        const currentHourlyRate = prev.hourlyRate ?? 0.10;
+        const halfHourRate = prev.halfHourRate ?? prev.hourlyRate ?? 0.10;
         const currentSpeedMultiplier = prev.speedMultiplier ?? 1;
 
         const simDeltaMs = realDeltaMs * currentSpeedMultiplier;
-        const RATE_PER_MS = currentHourlyRate / (3600 * 1000);
-        const tickCost = simDeltaMs * RATE_PER_MS;
+        let costDiff = 0;
 
         const updatedHistory = prev.history.map((s) => {
           if (s.id === prev.currentSessionId) {
+            const previousCost = s.cost || 0;
+            const newElapsedTime = s.elapsedTimeMs + simDeltaMs;
+            const newCost = newElapsedTime <= 0 ? 0 : Math.ceil(newElapsedTime / (30 * 60 * 1000)) * halfHourRate;
+            costDiff = newCost - previousCost;
+
             return {
               ...s,
-              elapsedTimeMs: s.elapsedTimeMs + simDeltaMs,
-              cost: s.cost + tickCost,
+              elapsedTimeMs: newElapsedTime,
+              cost: newCost,
             };
           }
           return s;
@@ -241,9 +252,9 @@ export default function App() {
 
         const newState = {
           ...prev,
-          balance: prev.balance - tickCost,
+          balance: prev.balance - costDiff,
           history: updatedHistory,
-          totalSpent: prev.totalSpent + tickCost,
+          totalSpent: prev.totalSpent + costDiff,
         };
 
         // Cache state locally on tick for fast recovery
@@ -362,17 +373,23 @@ export default function App() {
 
   const handleTimeSkip = (minutes: number) => {
     const skipMs = minutes * 60 * 1000;
-    const RATE_PER_MS = (state.hourlyRate ?? 0.10) / (3600 * 1000);
-    const skipCost = skipMs * RATE_PER_MS;
+    const halfHourRate = state.halfHourRate ?? state.hourlyRate ?? 0.10;
 
     if (!state.isActive || !state.currentSessionId) return;
 
+    let costDiff = 0;
+
     const updatedHistory = state.history.map((s) => {
       if (s.id === state.currentSessionId) {
+        const previousCost = s.cost || 0;
+        const newElapsedTime = s.elapsedTimeMs + skipMs;
+        const newCost = newElapsedTime <= 0 ? 0 : Math.ceil(newElapsedTime / (30 * 60 * 1000)) * halfHourRate;
+        costDiff = newCost - previousCost;
+
         return {
           ...s,
-          elapsedTimeMs: s.elapsedTimeMs + skipMs,
-          cost: s.cost + skipCost,
+          elapsedTimeMs: newElapsedTime,
+          cost: newCost,
         };
       }
       return s;
@@ -380,9 +397,9 @@ export default function App() {
 
     const newState = {
       ...state,
-      balance: state.balance - skipCost,
+      balance: state.balance - costDiff,
       history: updatedHistory,
-      totalSpent: state.totalSpent + skipCost,
+      totalSpent: state.totalSpent + costDiff,
     };
 
     updateAndSaveState(newState);
@@ -397,15 +414,17 @@ export default function App() {
       totalDeposits: 0.0,
       totalSpent: 0,
       speedMultiplier: 1,
-      hourlyRate: state.hourlyRate ?? 0.10,
+      hourlyRate: state.halfHourRate ?? state.hourlyRate ?? 0.10,
+      halfHourRate: state.halfHourRate ?? state.hourlyRate ?? 0.10,
     };
     updateAndSaveState(newState);
   };
 
-  const handleUpdateHourlyRate = (newRate: number) => {
+  const handleUpdateHalfHourRate = (newRate: number) => {
     const newState = {
       ...state,
-      hourlyRate: newRate,
+      halfHourRate: newRate,
+      hourlyRate: newRate, // Keep in sync for compatibility
     };
     updateAndSaveState(newState);
   };
@@ -497,7 +516,7 @@ export default function App() {
               balance={state.balance}
               onRecharge={handleRecharge}
               onResetBalance={handleResetBalance}
-              hourlyRate={state.hourlyRate ?? 0.10}
+              halfHourRate={state.halfHourRate ?? state.hourlyRate ?? 0.10}
             />
           </div>
 
@@ -522,8 +541,8 @@ export default function App() {
               formattedTime={getFormattedTime(currentDuration)}
               currentCost={currentCost}
               startTime={activeSession?.startTime ?? null}
-              hourlyRate={state.hourlyRate ?? 0.10}
-              onUpdateHourlyRate={handleUpdateHourlyRate}
+              halfHourRate={state.halfHourRate ?? state.hourlyRate ?? 0.10}
+              onUpdateHalfHourRate={handleUpdateHalfHourRate}
             />
           </div>
 
@@ -547,7 +566,7 @@ export default function App() {
                 speedMultiplier={state.speedMultiplier}
                 onSetSpeed={handleSetSpeed}
                 onTimeSkip={handleTimeSkip}
-                hourlyRate={state.hourlyRate ?? 0.10}
+                halfHourRate={state.halfHourRate ?? state.hourlyRate ?? 0.10}
               />
             </motion.div>
           )}
@@ -567,7 +586,7 @@ export default function App() {
       <footer className="max-w-6xl mx-auto px-6 mt-12 bg-white border border-slate-200 rounded-xl py-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-6">
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="font-bold text-slate-800 uppercase">Tarifa Actual:</span> ${(state.hourlyRate ?? 0.10).toFixed(2)} USD / Hora
+            <span className="font-bold text-slate-800 uppercase">Tarifa Actual:</span> ${(state.halfHourRate ?? state.hourlyRate ?? 0.10).toFixed(2)} USD / 30 Minutos
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <span className="font-bold text-slate-800 uppercase">Saldo Estimado:</span>{' '}
