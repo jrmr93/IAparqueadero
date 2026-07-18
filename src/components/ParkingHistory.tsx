@@ -184,7 +184,12 @@ export default function ParkingHistory({
                           </>
                         )}
                       </td>
-                      <td className="p-3 font-mono">{formatDuration(session.elapsedTimeMs)}</td>
+                      <td className="p-3 font-mono">
+                        <div className="font-bold text-slate-700">{formatDuration(session.elapsedTimeMs)}</div>
+                        <div className="text-[10px] text-slate-500 font-semibold font-sans mt-0.5" id={`half-hours-row-${session.id}`}>
+                          {(session.elapsedTimeMs / (30 * 60 * 1000)).toFixed(2)} medias horas
+                        </div>
+                      </td>
                       <td className="p-3 text-right font-mono text-slate-600">
                         {session.startBalance !== undefined ? `$${session.startBalance.toFixed(2)}` : "--"}
                       </td>
@@ -222,6 +227,9 @@ export default function ParkingHistory({
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Duración</p>
                         <p className="text-slate-700 font-mono font-bold mt-0.5">{formatDuration(session.elapsedTimeMs)}</p>
+                        <p className="text-slate-500 text-[10px] mt-0.5 font-medium" id={`half-hours-mobile-${session.id}`}>
+                          {(session.elapsedTimeMs / (30 * 60 * 1000)).toFixed(2)} m.h. transcurridas
+                        </p>
                       </div>
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Saldo Inicial</p>

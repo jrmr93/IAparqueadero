@@ -429,6 +429,46 @@ export default function App() {
     updateAndSaveState(newState);
   };
 
+  const handleUpdateActiveSession = (newStartTime: number, newStartBalance: number) => {
+    if (!state.isActive || !state.currentSessionId) return;
+
+    const now = Date.now();
+    const halfHourRate = state.halfHourRate ?? state.hourlyRate ?? 0.10;
+    const currentSpeedMultiplier = state.speedMultiplier ?? 1;
+
+    let costDiff = 0;
+    let oldCost = 0;
+    let newCost = 0;
+
+    const updatedHistory = state.history.map((s) => {
+      if (s.id === state.currentSessionId) {
+        oldCost = s.cost || 0;
+        const newElapsedTime = Math.max(0, now - newStartTime) * currentSpeedMultiplier;
+        newCost = newElapsedTime <= 0 ? 0 : Math.ceil(newElapsedTime / (30 * 60 * 1000)) * halfHourRate;
+        costDiff = newCost - oldCost;
+
+        return {
+          ...s,
+          startTime: newStartTime,
+          startBalance: newStartBalance,
+          elapsedTimeMs: newElapsedTime,
+          cost: newCost,
+        };
+      }
+      return s;
+    });
+
+    const newState = {
+      ...state,
+      balance: newStartBalance - newCost,
+      history: updatedHistory,
+      totalSpent: state.totalSpent + costDiff,
+    };
+
+    updateAndSaveState(newState);
+    lastUpdatedRef.current = now;
+  };
+
   // Get current active session details
   const activeSession = state.history.find((s) => s.id === state.currentSessionId);
   const currentDuration = activeSession?.elapsedTimeMs ?? 0;
@@ -517,6 +557,7 @@ export default function App() {
               onRecharge={handleRecharge}
               onResetBalance={handleResetBalance}
               halfHourRate={state.halfHourRate ?? state.hourlyRate ?? 0.10}
+              isActive={state.isActive}
             />
           </div>
 
@@ -541,8 +582,10 @@ export default function App() {
               formattedTime={getFormattedTime(currentDuration)}
               currentCost={currentCost}
               startTime={activeSession?.startTime ?? null}
+              startBalance={activeSession?.startBalance ?? state.balance}
               halfHourRate={state.halfHourRate ?? state.hourlyRate ?? 0.10}
               onUpdateHalfHourRate={handleUpdateHalfHourRate}
+              onUpdateActiveSession={handleUpdateActiveSession}
             />
           </div>
 

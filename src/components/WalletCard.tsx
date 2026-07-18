@@ -13,14 +13,24 @@ interface WalletCardProps {
   onResetBalance: () => void;
   halfHourRate?: number;
   hourlyRate?: number;
+  isActive?: boolean;
 }
 
-export default function WalletCard({ balance, onRecharge, onResetBalance, halfHourRate, hourlyRate = 0.10 }: WalletCardProps) {
+export default function WalletCard({ balance, onRecharge, onResetBalance, halfHourRate, hourlyRate = 0.10, isActive = false }: WalletCardProps) {
   const [customAmount, setCustomAmount] = useState<string>("");
   const [notification, setNotification] = useState<string | null>(null);
   const [showConfirmReset, setShowConfirmReset] = useState<boolean>(false);
   const [showConfirmRecharge, setShowConfirmRecharge] = useState<boolean>(false);
   const [amountToConfirm, setAmountToConfirm] = useState<number>(0);
+  const [tick, setTick] = useState<number>(0);
+
+  // Set up timer to update remaining hours and minutes display every minute
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const effectiveHalfHourRate = halfHourRate ?? hourlyRate;
 
@@ -69,6 +79,24 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, halfHo
     return parts.join(" ");
   };
 
+  const getExpirationDateStr = () => {
+    if (!isActive || balance <= 0 || effectiveHalfHourRate <= 0) return "";
+    const msRemaining = (balance / effectiveHalfHourRate) * 30 * 60 * 1000;
+    const expirationTimestamp = Date.now() + msRemaining;
+    const date = new Date(expirationTimestamp);
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    };
+    let formatted = date.toLocaleDateString("es-ES", options);
+    formatted = formatted.replace(",", "");
+    const hoursStr = String(date.getHours()).padStart(2, "0");
+    const minsStr = String(date.getMinutes()).padStart(2, "0");
+    return `${formatted} a las ${hoursStr}:${minsStr}`.toLowerCase();
+  };
+
   const isLowBalance = balance > 0 && balance < effectiveHalfHourRate; // less than 30 mins left
 
   return (
@@ -110,19 +138,26 @@ export default function WalletCard({ balance, onRecharge, onResetBalance, halfHo
             <span className="text-xs text-slate-400 font-bold uppercase">USD</span>
           </div>
 
-          <div className="mt-3 flex items-center gap-2 text-xs text-slate-600">
-            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>
-              {balance > 0 ? (
-                <>
-                  Equivale a: <strong className="text-slate-900 font-bold">{formatRemainingTime()}</strong> de parqueo continuo
-                </>
-              ) : balance < 0 ? (
-                <span className="text-rose-600 font-bold">Tienes una deuda activa de: -${Math.abs(balance).toFixed(2)} USD</span>
-              ) : (
-                <span className="text-rose-500 font-bold">Recarga saldo para poder parquear</span>
-              )}
-            </span>
+          <div className="mt-3 flex flex-col gap-1.5 text-xs text-slate-600">
+            <div className="flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>
+                {balance > 0 ? (
+                  <>
+                    Equivale a: <strong className="text-slate-900 font-bold">{formatRemainingTime()}</strong> de parqueo continuo
+                  </>
+                ) : balance < 0 ? (
+                  <span className="text-rose-600 font-bold">Tienes una deuda activa de: -${Math.abs(balance).toFixed(2)} USD</span>
+                ) : (
+                  <span className="text-rose-500 font-bold">Recarga saldo para poder parquear</span>
+                )}
+              </span>
+            </div>
+            {isActive && balance > 0 && effectiveHalfHourRate > 0 && (
+              <div className="text-[11px] text-slate-500 pl-5.5 leading-normal" id="balance-expiration-date-display">
+                Se agotará el: <strong className="text-blue-700 font-bold">{getExpirationDateStr()}</strong>
+              </div>
+            )}
           </div>
 
           {/* Inline confirmation removed in favor of gorgeous backdrop overlay modal */}

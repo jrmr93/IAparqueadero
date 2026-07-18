@@ -15,8 +15,10 @@ interface ParkingControlsProps {
   formattedTime: string;
   currentCost: number;
   startTime: number | null;
+  startBalance: number;
   halfHourRate: number;
   onUpdateHalfHourRate: (rate: number) => void;
+  onUpdateActiveSession: (newStartTime: number, newStartBalance: number) => void;
 }
 
 export default function ParkingControls({
@@ -27,8 +29,10 @@ export default function ParkingControls({
   formattedTime,
   currentCost,
   startTime,
+  startBalance,
   halfHourRate,
   onUpdateHalfHourRate,
+  onUpdateActiveSession,
 }: ParkingControlsProps) {
   
   const [showConfirmStart, setShowConfirmStart] = useState(false);
@@ -36,6 +40,11 @@ export default function ParkingControls({
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [tempRate, setTempRate] = useState(halfHourRate.toString());
   const hasNoBalance = balance <= 0;
+
+  // States for editing active session start time and starting balance
+  const [isEditingSession, setIsEditingSession] = useState(false);
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editStartBalance, setEditStartBalance] = useState("");
 
   // Synchronize tempRate if halfHourRate changes externally
   React.useEffect(() => {
@@ -70,6 +79,37 @@ export default function ParkingControls({
       minute: "2-digit",
       second: "2-digit",
     });
+  };
+
+  // Convert timestamp to local YYYY-MM-DDTHH:mm for datetime-local input
+  const toDatetimeLocal = (timestamp: number | null) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+  };
+
+  const handleOpenEditSession = () => {
+    if (startTime) {
+      setEditStartTime(toDatetimeLocal(startTime));
+    }
+    setEditStartBalance(startBalance.toString());
+    setIsEditingSession(true);
+  };
+
+  const parsedEditStartTime = Date.parse(editStartTime);
+  const parsedEditStartBalance = parseFloat(editStartBalance);
+  const isValidSessionData = 
+    !isNaN(parsedEditStartTime) && 
+    parsedEditStartTime <= Date.now() && 
+    !isNaN(parsedEditStartBalance) && 
+    parsedEditStartBalance >= 0;
+
+  const handleSaveSession = () => {
+    if (isValidSessionData) {
+      onUpdateActiveSession(parsedEditStartTime, parsedEditStartBalance);
+      setIsEditingSession(false);
+    }
   };
 
   return (
@@ -164,22 +204,93 @@ export default function ParkingControls({
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
                 Sesión de Parqueo Activa
               </span>
-              <span className="text-xs font-mono text-slate-400 font-bold">Entrada: {formatStartTime(startTime)}</span>
+              {!isEditingSession && (
+                <button
+                  type="button"
+                  id="btn-edit-active-session"
+                  onClick={handleOpenEditSession}
+                  className="flex items-center gap-1 text-[10px] bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded transition-all cursor-pointer"
+                  title="Modificar fecha de entrada y saldo inicial"
+                >
+                  <Edit2 className="w-2.5 h-2.5" />
+                  Editar
+                </button>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-4 mt-1">
-              <div>
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Tiempo transcurrido</p>
-                <p className="text-2xl font-black font-mono text-slate-800 tracking-tight" id="active-duration-display">
-                  {formattedTime}
-                </p>
+
+            {isEditingSession ? (
+              <div className="space-y-3 mt-2 p-3 bg-white/90 border border-rose-100 rounded-xl">
+                <div>
+                  <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">
+                    Fecha/Hora de Entrada:
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={editStartTime}
+                    max={toDatetimeLocal(Date.now())}
+                    onChange={(e) => setEditStartTime(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-blue-500 text-slate-800"
+                    id="input-edit-start-time"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">
+                    Saldo Inicial ($ USD):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editStartBalance}
+                    onChange={(e) => setEditStartBalance(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs font-mono font-bold text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-blue-500 text-slate-800"
+                    id="input-edit-start-balance"
+                  />
+                </div>
+                <div className="flex gap-2 justify-end pt-1">
+                  <button
+                    type="button"
+                    id="btn-cancel-edit-session"
+                    onClick={() => setIsEditingSession(false)}
+                    className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    id="btn-save-edit-session"
+                    disabled={!isValidSessionData}
+                    onClick={handleSaveSession}
+                    className={`px-2.5 py-1.5 text-white rounded-lg text-[9px] font-black uppercase tracking-wider ${
+                      isValidSessionData ? "bg-rose-600 hover:bg-rose-700 cursor-pointer" : "bg-slate-300 cursor-not-allowed"
+                    }`}
+                  >
+                    Guardar
+                  </button>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Costo acumulado</p>
-                <p className="text-2xl font-black font-mono text-rose-600 tracking-tight" id="active-cost-display">
-                  ${currentCost.toFixed(4)}
-                </p>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase mb-2">
+                  <span>Saldo inicial: ${startBalance.toFixed(2)} USD</span>
+                  <span>Entrada: {formatStartTime(startTime)}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-1">
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Tiempo transcurrido</p>
+                    <p className="text-2xl font-black font-mono text-slate-800 tracking-tight" id="active-duration-display">
+                      {formattedTime}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Costo acumulado</p>
+                    <p className="text-2xl font-black font-mono text-rose-600 tracking-tight" id="active-cost-display">
+                      ${currentCost.toFixed(4)}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
