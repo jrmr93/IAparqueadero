@@ -492,11 +492,11 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded flex items-center justify-center font-bold text-xl text-white">
-              P
+              IA
             </div>
             <div>
               <h1 className="text-lg font-black tracking-tight uppercase">
-                ParkFlow <span className="text-blue-400">Pro</span>
+                IA <span className="text-blue-400">Parqueadero</span>
               </h1>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Control de Parqueo Inteligente</p>
             </div>
