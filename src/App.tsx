@@ -643,6 +643,11 @@ export default function App() {
         </div>
       </footer>
 
+      {/* Creator attribution */}
+      <div className="text-center text-xs text-slate-400 mt-6 pb-8" id="creator-attribution">
+        Creado por <span className="font-semibold text-slate-600">Justo Maldonado Ruiz</span>
+      </div>
+
       {/* Out of Money Dialog/Alert Modal */}
       <AnimatePresence>
         {showEmptyAlert && (
